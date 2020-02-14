@@ -191,6 +191,7 @@ def train_agent():
         action = np.random.choice([0, 1, 2])
         state, reward, done, info = env.step(action)  # 1step目は適当な行動をとる
         state = np.reshape(state, [1, feature_num])  # list型のstateを、1行15列の行列に変換
+        state = state.astype(np.float32)
         # ここだけ 同じstateから同じstateに遷移したことにする
         store_episode_log_to_memory(state, action, reward, state, info)
 
@@ -206,6 +207,7 @@ def train_agent():
                 print(str(cur_itr) + ' training period finished.')
                 break
             next_state = np.reshape(next_state, [1, feature_num])  # list型のstateを、1行11列の行列に変換
+            next_state = next_state.astype(np.float32)
 
             # closeされた場合過去の各ポジションのopenについての獲得pipsが識別子文字列とともに
             # info で返されるので、その内容で過去のエピソードのリワードを更新する
