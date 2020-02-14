@@ -86,7 +86,7 @@ class QNetwork:
                 # 同じstateで異なるrewardが返されるので平均値をそのstateでの期待報酬とする
                 targets[i][action_b] = (targets[i][action_b] + reward_b) / 2  # 教師信号
 
-        self.model.fit(inputs, targets, epochs=3, verbose=1, batch_size=batch_size)  # epochsは訓練データの反復回数、verbose=0は表示なしの設定
+        self.model.fit(inputs, targets, epochs=3, verbose=2, batch_size=batch_size)  # epochsは訓練データの反復回数、verbose=0は表示なしの設定
 
     def save_model(self, file_path_prefix_str):
         with open("./" + file_path_prefix_str + "_nw.json", "w") as f:
