@@ -36,17 +36,18 @@ def huberloss(y_true, y_pred):
 # [2]Q関数をディープラーニングのネットワークをクラスとして定義
 class QNetwork:
     def __init__(self, learning_rate=0.001, state_size=15, action_size=3, hidden_size=10):
-        self.model = Sequential()
-        self.model.add(Dense(hidden_size, activation='relu', input_dim=state_size))
-        self.model.add(Dense(hidden_size, activation='relu'))
-        # self.model.add(BatchNormalization())
-        # self.model.add(Dropout(0.5))
-        # self.model.add(Dense(hidden_size, activation='relu'))
-        self.model.add(Dense(action_size, activation='linear'))
+        with strategy.scope():
+            self.model = Sequential()
+            self.model.add(Dense(hidden_size, activation='relu', input_dim=state_size))
+            self.model.add(Dense(hidden_size, activation='relu'))
+            # self.model.add(BatchNormalization())
+            # self.model.add(Dropout(0.5))
+            # self.model.add(Dense(hidden_size, activation='relu'))
+            self.model.add(Dense(action_size, activation='linear'))
 
-        self.optimizer = Adam(lr=learning_rate)  # 誤差を減らす学習方法はAdam
-        self.model.compile(loss=huberloss,
-                           optimizer=self.optimizer)
+            self.optimizer = Adam(lr=learning_rate)  # 誤差を減らす学習方法はAdam
+            self.model.compile(loss=huberloss,
+                               optimizer=self.optimizer)
 
     # 重みの学習
     def replay(self, memory, batch_size, gamma, targetQNarg = None):
