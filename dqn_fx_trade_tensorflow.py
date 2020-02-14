@@ -76,7 +76,10 @@ class QNetwork:
             # BUYとCLOSEのrewardが同じsutateでも異なるrewardが返り、さらにBUYのrewardが後追いで定まるため
             # それを反映するために replay を行う
             # 期待報酬は与えられたrewardの平均値（厳密には異なるが）とする
-            targets[i] = self.model.predict(state_b)
+            # print(state_b)
+            # print(self.model.predict(state_b))
+            # print(targets[i])
+            targets[i] = self.model.predict(state_b)[0]
             # BUYで暫定の rewardとして 0 を返されている場合は、それを用いて学習するとまずいので、
             # その場合はpredictした結果をそのまま使う. 以下はその条件でない場合のみ教師信号を与えるという論理
             if not (action_b == 0 and reward_b == 0):
