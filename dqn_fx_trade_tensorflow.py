@@ -5,14 +5,14 @@
 # I am very grateful to work of Mr. Yutaro Ogawa (id: sugulu)
 
 import numpy as np
-import time
-from keras.models import Sequential, model_from_json, Model
-from keras.layers import Dense, BatchNormalization, Dropout
-from keras.optimizers import Adam
-from keras.utils import plot_model
-from collections import deque
-from keras import backend as K
 import tensorflow as tf
+import time
+from tensorflow.keras.models import Sequential, model_from_json, Model
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout
+from tensorflow.keras.optimizers import Adam
+from collections import deque
+from tensorflow.keras import backend as K
+
 import pickle
 from agent_fx_environment import FXEnvironment
 import os
@@ -150,7 +150,7 @@ feature_num = 10 #11 #10 #11
 nn_output_size = 3
 TOTAL_ACTION_NUM = TRAIN_DATA_NUM * iteration_num
 
-def tarin_agent():
+def train_agent():
     env_master = FXEnvironment()
 
     # [5.2]Qネットワークとメモリ、Actorの生成--------------------------------------------------------
@@ -253,7 +253,7 @@ def run_backtest():
 if __name__ == '__main__':
     np.random.seed(1337)  # for reproducibility
     if sys.argv[1] == "train":
-        tarin_agent()
+        train_agent()
     elif sys.argv[1] == "backtest":
         run_backtest()
     else:
