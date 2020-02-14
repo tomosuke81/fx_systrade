@@ -52,7 +52,7 @@ class QNetwork:
     # 重みの学習
     def replay(self, memory, batch_size, gamma, targetQNarg = None):
         inputs = np.zeros((batch_size, feature_num))
-        targets = np.zeros((batch_size, 3))
+        targets = np.zeros((batch_size, 3), dtype=np.float32)
         mini_batch = memory.sample(batch_size)
         targetQN = targetQNarg
         if targetQNarg == None:
