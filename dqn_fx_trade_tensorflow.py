@@ -19,6 +19,10 @@ import os
 import sys
 import math
 
+resolver = tf.contrib.cluster_resolver.TPUClusterResolver('grpc://' + os.environ['COLAB_TPU_ADDR'])
+tf.contrib.distribute.initialize_tpu_system(resolver)
+strategy = tf.contrib.distribute.TPUStrategy(resolver)
+
 # [1]損失関数の定義
 # 損失関数にhuber関数を使用 参考https://github.com/jaara/AI-blog/blob/master/CartPole-DQN.py
 def huberloss(y_true, y_pred):
