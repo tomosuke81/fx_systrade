@@ -330,7 +330,7 @@ class FXEnvironment:
             self.exchange_dates = exchange_dates
             self.exchange_rates = exchange_rates
             self.half_spread = half_spred
-            self.cur_idx = batch_size # 初期値をバッチサイズと合わせる
+            self.cur_idx = 0 #batch_size # 初期値をバッチサイズと合わせる
             self.idx_geta = idx_geta
             self.log_fd_bt = open("./backtest_log_" + dt.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt", mode = "w")
             self.start = time.time()
@@ -551,7 +551,8 @@ class FXEnvironment:
                 else:
                     needclose = False
 
-                next_state = self.input_arr[self.cur_idx - batch_size + 1:self.cur_idx + 1]
+                #next_state = self.input_arr[self.cur_idx - batch_size + 1:self.cur_idx + 1]
+                next_state = self.input_arr[self.cur_idx]
                 # 第四返り値はエピソードの識別子を格納するリスト. 第0要素は返却する要素に対応するもので、
                 # それ以外の要素がある場合は、close時にさかのぼって エピソードのrewardを更新するためのもの
                 return next_state, reward, False, [cur_step_identifier] + self.additional_infos, needclose

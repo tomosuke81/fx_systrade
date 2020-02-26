@@ -87,16 +87,21 @@ class QNetwork:
             # BUYとCLOSEのrewardが同じsutateでも異なるrewardが返り、さらにBUYのrewardが後追いで定まるため
             # それを反映するために replay を行う
             # 期待報酬は与えられたrewardの平均値（厳密には異なるが）とする
-            targets[i] = self.model.predict(state_b)[0]
+            targets[i] = self.model.predict(state_b)[0][0]
             # 暫定の rewardとして 0 を返されている場合は、それを用いて学習するとまずいので、
             # その場合はpredictした結果をそのまま使う. 以下はその条件でない場合のみ教師信号を与えるという論理
             # if not action_b == 0 and reward_b == 0:
-            if not ((action_b == 0 and reward_b == 0) or (action_b == 2 and reward_b == 0)):
-                targets[i][action_b] = reward_b  # 教師信号
+            print("reward_b: BUY -> " + str(targets[i][0][0]) + "," + str(reward_b[0]) +
+                  "/ CLOSE -> " + str(targets[i][1][0]) +
+                  "/ DONOT -> " + str(targets[i][2][0]) + "," + str(reward_b[2]) +
+                  "/ (BUY - DONOT): " + str(targets[i][0][0] - targets[i][2][0])
+            )
 
-            print("reward_b" + "(" + str(action_b) + "): " + str(reward_b) + " predicted: " +
-                  str(targets[i][action_b]) + " (BUY - DONOT): " + str(targets[i][0] - targets[i][2]))
-            targets[i][1] = -100.0  # CLOSEのrewardは必ず-100.0なので与えておく
+            # イテレーションをまたいで平均rewardを計算しているlistから3つ全てのアクションのrewardを得てあるので
+            # 全て設定する
+            targets[i][0][0] = reward_b[0]  # 教師信号
+            targets[i][1][0] = -100.0       # CLOSEのrewardは必ず-100.0
+            targets[i][2][0] = reward_b[2]  # 教師信号
 
         self.model.fit(inputs, targets, epochs=1, verbose=1, batch_size=batch_size)  # epochsは訓練データの反復回数、verbose=0は表示なしの設定
 

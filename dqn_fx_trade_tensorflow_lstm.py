@@ -35,38 +35,31 @@ class QNetwork:
         self.model = Sequential()
 
         # 入力データ数が input_data_len なので、input_shapeの値は(input_data_len,1)
-        self.model.add(LSTM(batch_size, activation='relu', kernel_regularizer=l2(0.01), recurrent_regularizer=l2(0.01), bias_regularizer=l2(0.01), input_shape=(state_size, 1)))
-        #self.model.add(LSTM(64, activation='relu', input_shape=(state_size, 1)))
+        self.model.add(LSTM(batch_size, activation='relu', kernel_regularizer=l2(0.01), recurrent_regularizer=l2(0.01),bias_regularizer=l2(0.01), input_shape=(state_size,1)))
+        #self.model.add(LSTM(batch_size, activation='relu', kernel_regularizer=l2(0.01), recurrent_regularizer=l2(0.01), bias_regularizer=l2(0.01), input_shape=(state_size, 1)))
+
         # 予測範囲は output_data_lenステップなので、RepeatVectoorにoutput_data_lenを指定
-        self.model.add(RepeatVector(batch_size))
+        #self.model.add(RepeatVector(batch_size))
         #self.model.add(RepeatVector(action_size))
-        #self.model.add(RepeatVector(action_size))
+        self.model.add(RepeatVector(1))
+
         self.model.add(LSTM(batch_size, activation='relu', kernel_regularizer=l2(0.01), recurrent_regularizer=l2(0.01), bias_regularizer=l2(0.01), return_sequences=True))
-        #self.model.add(TimeDistributed(Dense(1)))
         self.model.add(TimeDistributed(Dense(action_size, activation='linear')))
-        self.model.add(Reshape((batch_size, action_size, 1)))
-        #self.model.add(TimeDistributed(Dense(1, activation='linear')))
-        #self.optimizer = Adam(lr=learning_rate)
-        #self.optimizer = Adam(lr=learning_rate, momentum=0.9, clipvalue=5.0)
-        self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
+        # self.model.add(Reshape((batch_size, action_size, 1)))
+
+        self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
+        #self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
         self.model.compile(optimizer=self.optimizer, loss=huberloss)
 
-        # self.model = Sequential()
-        # self.model.add(Dense(hidden_size, activation='relu', input_dim=state_size))
-        # self.model.add(Dense(hidden_size, activation='relu'))
         # self.model.add(BatchNormalization())
         # #self.model.add(Dropout(0.5))
         # self.model.add(Dense(action_size, activation='linear'))
-        # self.optimizer = Adam(lr=learning_rate)  # 誤差を減らす学習方法はAdam
-        # self.model.compile(loss=huberloss,
-        #                    optimizer=self.optimizer)
-
 
     # 重みの学習
     def replay(self, memory, batch_size, gamma, experienced_episodes = 0):
-        inputs = np.zeros((batch_size, feature_num, 1))
-        targets = np.zeros((batch_size, nn_output_size, 1))
-        # 1をTRAIN_DATA_NUMに足しているのは既にepisodeの処理を終えてexperienced_episodesにその回が形状されているつじつま合わせ
+        inputs = np.zeros((batch_size, feature_num))
+        targets = np.zeros((batch_size, 3))
+
         mini_batch = memory.get_sequencial_samples(batch_size, experienced_episodes - (TRAIN_DATA_NUM + 1) - batch_size)
         #mini_batch = memory.get_sequencial_samples(batch_size, experienced_episodes - 1 - batch_size)
         start_idx_in_itr = (experienced_episodes % TRAIN_DATA_NUM) - 1 - batch_size
@@ -74,46 +67,34 @@ class QNetwork:
         mini_batch = memory.get_sequencial_converted_samples(mini_batch, start_idx_in_itr)
 
         for i, (state_b, action_b, reward_b, next_state_b) in enumerate(mini_batch):
-            inputs[i] = np.reshape(state_b[-1], [feature_num, 1])
+            inputs[i:i+1] = state_b
 
             # 以下はQ関数のマルコフ連鎖を考慮した更新式を無視した実装
             # BUYとCLOSEのrewardが同じsutateでも異なるrewardが返り、さらにBUYのrewardが後追いで定まるため
             # それを反映するために replay を行う
             # 期待報酬は与えられたrewardの平均値（厳密には異なるが）とする
-            reshaped_state_b = np.reshape(state_b, [batch_size, feature_num, 1])
-            targets[i] = np.reshape(self.model.predict(reshaped_state_b)[0][-1], [nn_output_size, 1])
 
-            # # 暫定の rewardとして 0 を返されている場合は、それを用いて学習するとまずいので、
-            # # その場合はpredictした結果をそのまま使う. 以下はその条件でない場合のみ教師信号を与えるという論理
-            # if not ((action_b == 0 and reward_b == 0) or (action_b == 2 and reward_b == 0)):
-            #     targets[i][action_b][0] = reward_b  # 教師信号
-            #
-            # print("reward_b" + "(" + str(action_b) + "): " + str(reward_b) + " predicted: " +
-            #       str(targets[i][action_b][0]) + " (BUY - DONOT): " + str(targets[i][0][0] - targets[i][2][0]))
-            # targets[i][1][0] = -100.0  # CLOSEのrewardは必ず-100.0なので与えておく
+            state_b = np.array(state_b)
+            state_b = state_b.reshape((1, feature_num, 1))
+            targets[i] = self.model.predict(state_b)[0]
 
-            print("reward_b: BUY -> " + str(targets[i][0][0]) + "," + str(reward_b[0]) +
-                  "/ CLOSE -> " + str(targets[i][1][0]) +
-                  "/ DONOT -> " + str(targets[i][2][0]) + "," + str(reward_b[2]) +
-                  "/ (BUY - DONOT): " + str(targets[i][0][0] - targets[i][2][0])
+            print("reward_b: BUY -> " + str(targets[i][0]) + "," + str(reward_b[0]) +
+                  "/ CLOSE -> " + str(targets[i][1]) +
+                  "/ DONOT -> " + str(targets[i][2]) + "," + str(reward_b[2]) +
+                  "/ (BUY - DONOT): " + str(targets[i][0] - targets[i][2])
             )
 
-            # イテレーションをまたいで平均rewardを計算しているlistから3つ全てのアクションのrewardを得てあるので
-            # 全て設定する
-            targets[i][0][0] = reward_b[0]  # 教師信号
-            targets[i][1][0] = -100.0       # CLOSEのrewardは必ず-100.0
-            targets[i][2][0] = reward_b[2]  # 教師信号
+            targets[i][action_b] = reward_b[0]  # 教師信号
+            targets[i][action_b] = reward_b[2]  # 教師信号
+
+            targets[i][1] = -100.0  # CLOSEのrewardは必ず-100.0なので与えておく
 
         targets = np.array(targets)
         inputs = np.array(inputs)
-        inputs = inputs.reshape((inputs.shape[0], inputs.shape[1], 1))
-        targets = targets.reshape((targets.shape[0], targets.shape[1], 1))
-        print(inputs.shape)
-        print(targets.shape)
+        inputs = inputs.reshape((batch_size, feature_num, 1))
+        targets = targets.reshape((batch_size, nn_output_size, 1))
 
-        #self.model.fit(inputs, targets, epochs=1, verbose=1, batch_size=batch_size)  # epochsは訓練データの反復回数、verbose=0は表示なしの設定
         self.model.fit(inputs, targets, epochs=1, verbose=1, batch_size=batch_size)
-
 
     def save_model(self, file_path_prefix_str):
         with open("./" + file_path_prefix_str + "_nw.json", "w") as f:
@@ -160,7 +141,7 @@ class Memory:
         ret_list = []
         #print(base_data)
         for idx, (state, action, reward, next_action) in enumerate(base_data):
-            ret_list.append([state, action, self.all_period_reward_arr[start_idx + idx], next_action])
+            ret_list.append([state, action, self.all_period_reward_arr[idx], next_action])
 
         return ret_list
 
@@ -199,12 +180,11 @@ class Actor:
         # epsilonが小さい値の場合の方が最大報酬の行動が起こる
         # 周回数が3の倍数の時か、バックテストの場合は常に最大報酬の行動を選ぶ
         if epsilon <= np.random.uniform(0, 1) or isBacktest == True or ((cur_itr % 5 == 0) and cur_itr != 0):
-            # バッチサイズ個の予測結果が返ってくるので最後の1アウトプットのみ見る
-            reshaped_state = np.reshape(state, [batch_size, feature_num, 1])
-            retTargetQs = mainQN.model.predict(reshaped_state)[0]
-            print(list(itertools.chain.from_iterable(retTargetQs[-1])))
-            # 1要素しかないが、複数返ってくるように修正した場合を想定して -1 を指定
-            action = np.argmax(retTargetQs[-1])  # 最大の報酬を返す行動を選択する
+            state = np.array(state)
+            state = state.reshape((1, feature_num, 1))
+            retTargetQs = mainQN.model.predict(state)
+            print(retTargetQs)
+            action = np.argmax(retTargetQs[0][0])  # 最大の報酬を返す行動を選択する
         else:
             action = np.random.choice([0, 1, 2])  # ランダムに行動する
 
@@ -259,6 +239,8 @@ def tarin_agent():
             all_period_reward_hash = pickle.load(f)
         with open("./state_x_action_hash.pickle", 'rb') as f:
             state_x_action_hash = pickle.load(f)
+        with open("./all_period_reward_arr.pickle", 'rb') as f:
+            all_period_reward_arr = pickle.load(f)
 
     def store_episode_log_to_memory(state, action, reward, next_state, info):
         nonlocal memory
@@ -286,7 +268,8 @@ def tarin_agent():
         action = np.random.choice([0, 1, 2])
         state, reward, done, info, needclose = env.step(action)  # 1step目は適当な行動をとる
         total_get_acton_cnt += 1
-        state = np.reshape(state, [batch_size, feature_num])  # list型のstateを、1行15列の行列に変換
+        state = np.reshape(state, [1, feature_num])  # list型のstateを、1行15列の行列に変換
+        #state = np.reshape(state, [batch_size, feature_num])  # list型のstateを、1行15列の行列に変換
         # ここだけ 同じstateから同じstateに遷移したことにする
         store_episode_log_to_memory(state, action, reward, state, info)
 
@@ -301,6 +284,8 @@ def tarin_agent():
                 pickle.dump(all_period_reward_hash, f)
             with open("./state_x_action_hash.pickle", 'wb') as f:
                 pickle.dump(state_x_action_hash, f)
+            with open("./all_period_reward_arr.pickle", 'wb') as f:
+                pickle.dump(all_period_reward_arr, f)
 
         for episode in range(num_episodes):  # 試行数分繰り返す
             total_get_acton_cnt += 1
@@ -316,7 +301,8 @@ def tarin_agent():
                 # total_get_actionと memory 内の要素数がズレるのを避けるために追加しておく
                 store_episode_log_to_memory(state, action, reward, next_state, info)
                 break
-            next_state = np.reshape(next_state, [batch_size, feature_num])  # list型のstateを、1行feature num列の行列に変換
+            next_state = np.reshape(next_state, [1, feature_num])  # list型のstateを、1行feature num列の行列に変換
+            #next_state = np.reshape(next_state, [batch_size, feature_num])  # list型のstateを、1行feature num列の行列に変換
 
             store_episode_log_to_memory(state, action, reward, next_state, info)
 
