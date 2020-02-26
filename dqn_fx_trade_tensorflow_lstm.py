@@ -47,8 +47,8 @@ class QNetwork:
         self.model.add(TimeDistributed(Dense(action_size, activation='linear')))
         # self.model.add(Reshape((batch_size, action_size, 1)))
 
-        self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
-        #self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
+        #self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
+        self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
         self.model.compile(optimizer=self.optimizer, loss=huberloss)
 
         # self.model.add(BatchNormalization())
