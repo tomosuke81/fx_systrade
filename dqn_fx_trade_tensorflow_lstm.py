@@ -66,7 +66,7 @@ class QNetwork:
     def replay(self, memory, batch_size, gamma, experienced_episodes = 0):
         inputs = np.zeros((batch_size, feature_num, 1))
         targets = np.zeros((batch_size, nn_output_size, 1))
-        # 1をTRAIN_DATA_NUMに足しているのは既にepisodeの処理を終えてexperienced_episodesにその回が形状されているつじつま合わせ
+        # 1をTRAIN_DATA_NUMに足しているのは既にepisodeの処理を終えてexperienced_episodesにその回が計上されているつじつま合わせ
         mini_batch = memory.get_sequencial_samples(batch_size, experienced_episodes - (TRAIN_DATA_NUM + 1) - batch_size)
         #mini_batch = memory.get_sequencial_samples(batch_size, experienced_episodes - 1 - batch_size)
         start_idx_in_itr = (experienced_episodes % TRAIN_DATA_NUM) - 1 - batch_size
