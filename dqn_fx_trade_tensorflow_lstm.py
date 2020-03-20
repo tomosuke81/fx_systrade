@@ -59,11 +59,11 @@ class QNetwork:
             else:
                 # 面倒なので動かすルートだけ、DropoutとBatchNormalizationの位置変えの修正を入れる（0320-1013）
                 self.model = tf.keras.Sequential([
-                    LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, dropout=0.5), #recurrent_dropout=0.5),
+                    LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, recurrent_dropout=0.5),
                     LeakyReLU(0.2),
-                    BatchNormalization(),
                     Dropout(0.5),
-                    LSTM(hidden_size, return_sequences=False, activation=None), #recurrent_dropout=0.5),
+                    BatchNormalization(),
+                    LSTM(hidden_size, return_sequences=False, activation=None, recurrent_dropout=0.5),
                     LeakyReLU(0.2),
                     Dense(action_size, activation='linear')
                 ])
