@@ -16,7 +16,7 @@ if IS_TF_STYLE:
     from tensorflow.keras.models import Sequential, model_from_json, Model, load_model, save_model
     from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, RepeatVector, TimeDistributed, Reshape, LeakyReLU
     from tensorflow.keras.optimizers import Adam, SGD
-    from tensorflow.keras.regularizers import l2
+    from tensorflow.keras.regularizers import l2, l1
     #from tensorflow.keras.regularizers import l2
     #from keras import backend as K
 else:
@@ -39,8 +39,8 @@ class QNetwork:
     def __init__(self, learning_rate=0.001, state_size=15, action_size=3, time_series=32):
         global all_period_reward_arr
 
-        #self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
-        self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
+        self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
+        #self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
         self.loss_func = tf.keras.losses.Huber(delta=1.0)
 
         if IS_TF_STYLE:
@@ -62,11 +62,11 @@ class QNetwork:
                 # strategy = tf.distribute.OneDeviceStrategy(device="/cpu:0")
                 # with strategy.scope():
                 self.model = tf.keras.Sequential([
-                    LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, kernel_regularizer=l2(0.01), recurrent_dropout=0.5),
+                    LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, kernel_regularizer=l1(0.01), recurrent_dropout=0.5),
                     BatchNormalization(),
                     Dropout(0.5),
                     LeakyReLU(0.2),
-                    LSTM(hidden_size, return_sequences=False, activation=None, kernel_regularizer=l2(0.01), recurrent_dropout=0.5),
+                    LSTM(hidden_size, return_sequences=False, activation=None, kernel_regularizer=l1(0.01), recurrent_dropout=0.5),
                     LeakyReLU(0.2),
                     Dense(action_size, activation='linear')
                 ])
