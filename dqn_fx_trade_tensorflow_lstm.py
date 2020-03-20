@@ -56,18 +56,22 @@ class QNetwork:
                     LeakyReLU(0.2),
                     Dense(action_size, activation='linear', kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))
                 ])
+                self.model.compile(optimizer=self.optimizer, loss=self.loss_func)
             else:
                 # 面倒なので動かすルートだけ、DropoutとBatchNormalizationの位置変えの修正を入れる（0320-1013）
-                self.model = tf.keras.Sequential([
-                    LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, recurrent_dropout=0.5),
-                    LeakyReLU(0.2),
-                    Dropout(0.5),
-                    BatchNormalization(),
-                    LSTM(hidden_size, return_sequences=False, activation=None, recurrent_dropout=0.5),
-                    LeakyReLU(0.2),
-                    Dense(action_size, activation='linear')
-                ])
-            self.model.compile(optimizer=self.optimizer, loss=self.loss_func)
+                strategy = tf.distribute.OneDeviceStrategy(device="/cpu:0")
+
+                with strategy.scope():
+                    self.model = tf.keras.Sequential([
+                        LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, recurrent_dropout=0.5),
+                        LeakyReLU(0.2),
+                        Dropout(0.5),
+                        BatchNormalization(),
+                        LSTM(hidden_size, return_sequences=False, activation=None, recurrent_dropout=0.5),
+                        LeakyReLU(0.2),
+                        Dense(action_size, activation='linear')
+                    ])
+                    self.model.compile(optimizer=self.optimizer, loss=self.loss_func)
         else:
             self.model = Sequential()
 
