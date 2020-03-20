@@ -63,9 +63,9 @@ class QNetwork:
                 # with strategy.scope():
                 self.model = tf.keras.Sequential([
                     LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, kernel_regularizer=l2(0.01), recurrent_dropout=0.5),
-                    LeakyReLU(0.2),
                     Dropout(0.5),
                     BatchNormalization(),
+                    LeakyReLU(0.2),
                     LSTM(hidden_size, return_sequences=False, activation=None, kernel_regularizer=l2(0.01), recurrent_dropout=0.5),
                     LeakyReLU(0.2),
                     Dense(action_size, activation='linear')
