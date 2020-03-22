@@ -67,6 +67,7 @@ class QNetwork:
                     Dropout(0.5),
                     LeakyReLU(0.2),
                     LSTM(hidden_size, return_sequences=False, activation=None, kernel_regularizer=l1(0.01), recurrent_dropout=0.5),
+                    BatchNormalization(),
                     LeakyReLU(0.2),
                     Dense(action_size, activation='linear')
                 ])
