@@ -14,7 +14,7 @@ from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 from tensorflow.keras.regularizers import l1, l2
 from collections import deque
 import pickle
-from agent_fx_environment_lstm import FXEnvironment
+from supervised_learning_dnn_environment_lstm import FXEnvironment
 import os
 import sys
 import random
