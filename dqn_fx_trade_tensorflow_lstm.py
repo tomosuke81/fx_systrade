@@ -39,9 +39,10 @@ class QNetwork:
     def __init__(self, learning_rate=0.001, state_size=15, action_size=3, time_series=32):
         global all_period_reward_arr
 
-        self.optimizer = RMSprop(lr=learning_rate, clipvalue=1.0)
-        # self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
-        # self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=5.0)
+
+        # self.optimizer = Adam(lr=learning_rate, clipvalue=0.1)
+        # self.optimizer = RMSprop(lr=learning_rate, clipvalue=0.1)
+        self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=0.1)
         self.loss_func = tf.keras.losses.Huber(delta=1.0)
 
         if IS_TF_STYLE:
