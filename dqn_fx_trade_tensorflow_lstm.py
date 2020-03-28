@@ -40,8 +40,8 @@ class QNetwork:
         global all_period_reward_arr
 
 
-        self.optimizer = Adam(lr=learning_rate,  momentum=0.9, clipvalue=0.1)
-        # self.optimizer = RMSprop(lr=learning_rate, clipvalue=0.1)
+        #self.optimizer = Adam(lr=learning_rate,  momentum=0.9, clipvalue=0.1)
+        self.optimizer = RMSprop(lr=learning_rate, momentum=0.9, clipvalue=0.1)
         # self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=0.1)
         self.loss_func = tf.keras.losses.Huber(delta=1.0)
 
