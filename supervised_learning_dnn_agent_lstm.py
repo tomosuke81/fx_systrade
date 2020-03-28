@@ -24,13 +24,11 @@ import math
 # [2]Q関数をディープラーニングのネットワークをクラスとして定義
 class QNetwork:
     def __init__(self, learning_rate=0.001, state_size=15, action_size=3, time_series=32):
-        global all_period_reward_arr
-
         self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
         #self.optimizer = RMSprop(lr=learning_rate, momentum=0.9, clipvalue=0.1)
         # self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=0.1)
 
-        #self.loss_func = tf.keras.losses.Huber(delta=1.0)
+        self.loss_func = tf.keras.losses.Huber(delta=1.0)
 
         self.model = tf.keras.Sequential([
             LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None), #recurrent_dropout=0.5),
@@ -39,10 +37,11 @@ class QNetwork:
             Dropout(0.5),
             LSTM(hidden_size, return_sequences=False, activation=None), #recurrent_dropout=0.5),
             LeakyReLU(0.2),
-            Dense(action_size, activation='sofmax')
+            Dense(action_size, activation='softmax')
         ])
         #self.model.compile(optimizer=self.optimizer, loss=self.loss_func)
-        self.model.compile(optimizer=self.optimizer, loss="sparse_categorical_crossentropy", metrics = ['accuracy'])
+        #self.model.compile(optimizer=self.optimizer, loss="sparse_categorical_crossentropy", metrics = ['accuracy'])
+        self.model.compile(optimizer=self.optimizer, loss=self.loss_func, metrics=['accuracy'])
         self.model.summary()
 
 
@@ -63,7 +62,7 @@ class Actor:
     def __init__(self):
         pass
 
-    def get_action(self, features, mainQN, ):
+    def get_action(self, features, mainQN):
             # epsilonが小さい値の場合の方が最大報酬の行動が起こる
             # イテレーション数が5の倍数の時か、バックテストの場合は常に最大報酬の行動を選ぶ
             reshaped_state = np.reshape(features, [1, time_series, feature_num])
@@ -77,13 +76,19 @@ class Actor:
         batch_num = len(train_x) // batch_size
         validation_len = len(validation_x)
 
+
         train_x = np.array(train_x[:batch_size*batch_num])
         train_y = np.array(train_y[:batch_size*batch_num])
         validation_x = np.array(validation_x)
         validation_y = np.array(validation_y)
 
-        train_x = train_x.reshape((validation_len, time_series, feature_num))
-        train_y = train_y.reshape((validation_len, nn_output_size))
+        train_x = train_x.reshape((batch_size*batch_num, time_series, feature_num))
+        train_y = train_y.reshape((batch_size*batch_num, nn_output_size))
+        validation_x = validation_x.reshape((validation_len, time_series, feature_num))
+        validation_y = validation_y.reshape((validation_len, nn_output_size))
+
+        print(train_x.shape)
+        print(train_y.shape)
 
         cbks = []
         if USE_TENSOR_BOARD:
@@ -115,16 +120,14 @@ DONOT = 2
 CLOSE = 3
 
 def tarin_agent():
-    global all_period_reward_arr
-
     env_master = FXEnvironment(train_data_num = TRAIN_DATA_NUM, time_series=time_series, holdable_positions=HODABLE_POSITIONS, predict_future_legs=40, half_spread = half_spread)
     mainQN = QNetwork(time_series=time_series, learning_rate=learning_rate, state_size=feature_num, action_size=nn_output_size)     # メインのQネットワーク
     actor = Actor()
 
     # inputは time_series個ずつ まとまった形で返ってくる
-    tr_input_arr, tr_label_arr, ts_input_arr, ts_angle_arr = env_master.get_train_and_validation_arr()
+    tr_input_arr, tr_label_arr, ts_input_arr, ts_label_arr = env_master.get_train_and_validation_datas()
 
-    mainQN.train()
+    actor.train(mainQN, tr_input_arr, tr_label_arr, ts_input_arr, ts_label_arr)
     mainQN.save_model("mainQN")
 
 def run_backtest(backtest_type, learingQN=None):

@@ -16,10 +16,10 @@ from collections import deque
 RATE_AND_DATE_STLIDE = int(5 / 5) # 5分足 #int(30 / 5) # 30分足
 
 class FXEnvironment:
-    def __init__(self, train_data_num, time_series=32, holdable_positions=100, predict_futue_legs=10, half_spread=0.0015):
+    def __init__(self, train_data_num, time_series=32, holdable_positions=100, predict_future_legs=10, half_spread=0.0015):
         print("FXEnvironment class constructor called.")
         self.INPUT_LEN = 1
-        self.predict_future_legs = predict_futue_legs
+        self.predict_future_legs = predict_future_legs
         self.COMPETITION_TRAIN_DATA_NUM = train_data_num
         self.half_spread = half_spread
 
@@ -308,7 +308,7 @@ class FXEnvironment:
                 all_angle_mat = pickle.load(f)
         else:
             all_input_mat, all_angle_mat = \
-                self.make_serialized_data(self.DATA_HEAD_ASOBI, len(self.exchange_rates) - self.DATA_HEAD_ASOBI - self.PREDICT_FUTURE_LEGS, 1, './all_input_mat.pickle', './all_angle_mat.pickle')
+                self.make_serialized_data(self.DATA_HEAD_ASOBI, len(self.exchange_rates) - self.DATA_HEAD_ASOBI - self.predict_future_legs, 1, './all_input_mat.pickle', './all_angle_mat.pickle')
 
         self.tr_input_arr = all_input_mat[0:self.COMPETITION_TRAIN_DATA_NUM]
         self.tr_angle_arr = all_angle_mat[0:self.COMPETITION_TRAIN_DATA_NUM]
