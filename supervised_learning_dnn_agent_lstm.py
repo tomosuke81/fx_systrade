@@ -107,6 +107,7 @@ nn_output_size = 3
 HODABLE_POSITIONS = 100 #30
 predict_future_legs = 40
 epochs = 400
+half_spread = 0.0015
 
 BUY = 0
 SELL = 1
