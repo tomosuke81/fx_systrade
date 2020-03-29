@@ -37,6 +37,8 @@ class QNetwork:
             Dropout(0.5),
             LSTM(hidden_size, return_sequences=False, activation=None), #recurrent_dropout=0.5),
             LeakyReLU(0.2),
+            BatchNormalization(),
+            Dropout(0.5),
             Dense(action_size, activation='softmax')
         ])
         #self.model.compile(optimizer=self.optimizer, loss=self.loss_func)
@@ -97,6 +99,13 @@ class Actor:
                                                     write_graph=True, write_grads=True, profile_batch=True)
             cbks = [callbacks]
 
+        #ベストモデルを自動保存するようコールバックを設定
+        snapshot_cbk = tf.keras.callbacks.ModelCheckpoint(
+            "./best_model.hd5", monitor='val_loss', verbose=0, save_best_only=True,
+            save_weights_only=False, mode='auto', save_freq='epoch'
+        )
+        cbks.append(snapshot_cbk)
+
         mainNN.model.fit(x=train_x, y=train_y, validation_data=(validation_x, validation_y), validation_freq = 4, epochs=epochs,
                          verbose=1, batch_size=batch_size, callbacks=cbks)
 
@@ -111,7 +120,7 @@ feature_num = 10
 nn_output_size = 2 #3
 HODABLE_POSITIONS = 100 #30
 predict_future_legs = 40
-epochs = 45 #15 #45 # 90 #400
+epochs = 500 #45 #15 #45 # 90 #400
 half_spread = 0.0015
 
 BUY = 0
