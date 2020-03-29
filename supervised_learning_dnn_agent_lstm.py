@@ -9,7 +9,7 @@ USE_TENSOR_BOARD = True
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, model_from_json, Model, load_model, save_model
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, RepeatVector, TimeDistributed, Reshape, LeakyReLU
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, RepeatVector, TimeDistributed, Reshape, LeakyReLU, PReLU
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 from tensorflow.keras.regularizers import l1, l2
 from collections import deque
@@ -24,21 +24,22 @@ import math
 # [2]Q関数をディープラーニングのネットワークをクラスとして定義
 class QNetwork:
     def __init__(self, learning_rate=0.001, state_size=15, action_size=3, time_series=32):
-        self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
+        #self.optimizer = Adam(lr=learning_rate, clipvalue=5.0)
         #self.optimizer = RMSprop(lr=learning_rate, momentum=0.9, clipvalue=0.1)
-        # self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=0.1)
+        self.optimizer = SGD(lr=learning_rate, momentum=0.9, clipvalue=0.5)
 
         self.loss_func = tf.keras.losses.Huber(delta=1.0)
 
         self.model = tf.keras.Sequential([
-            LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None), #recurrent_dropout=0.5),
-            LeakyReLU(0.2),
+            LSTM(hidden_size, input_shape=(time_series, state_size), return_sequences=True, activation=None, kernel_regularizer=l2(0.1)), #recurrent_dropout=0.5),
+            #LeakyReLU(0.2),
+            PReLU(),
             BatchNormalization(),
             Dropout(0.5),
-            LSTM(hidden_size, return_sequences=False, activation=None), #recurrent_dropout=0.5),
-            LeakyReLU(0.2),
+            LSTM(hidden_size, return_sequences=False, activation=None, kernel_regularizer=l2(0.1)), #recurrent_dropout=0.5),
+            #LeakyReLU(0.2),
+            PReLU(),
             BatchNormalization(),
-            Dropout(0.5),
             Dense(action_size, activation='softmax')
         ])
         #self.model.compile(optimizer=self.optimizer, loss=self.loss_func)
@@ -101,7 +102,7 @@ class Actor:
 
         #ベストモデルを自動保存するようコールバックを設定
         snapshot_cbk = tf.keras.callbacks.ModelCheckpoint(
-            "./best_model", monitor='val_loss', verbose=0, save_best_only=True,
+            "./best_model", monitor='val_accuracy', verbose=1, save_best_only=True,
             save_weights_only=False, mode='auto', save_freq='epoch'
         )
         cbks.append(snapshot_cbk)
@@ -111,7 +112,7 @@ class Actor:
 
 
 hidden_size = 64
-learning_rate = 0.0004
+learning_rate = 0.0001
 time_series = 64
 batch_size = 256
 TRAIN_DATA_NUM = 72000 # <- 5分足で1年 # 36000 - time_series # <- 10分足で1年
@@ -120,7 +121,7 @@ feature_num = 10
 nn_output_size = 2 #3
 HODABLE_POSITIONS = 100 #30
 predict_future_legs = 40
-epochs = 500 #45 #15 #45 # 90 #400
+epochs = 4000 #45 #15 #45 # 90 #400
 half_spread = 0.0015
 
 BUY = 0
