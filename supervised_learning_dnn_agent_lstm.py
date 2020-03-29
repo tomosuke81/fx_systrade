@@ -111,7 +111,7 @@ feature_num = 10
 nn_output_size = 2 #3
 HODABLE_POSITIONS = 100 #30
 predict_future_legs = 40
-epochs = 15 #45 # 90 #400
+epochs = 45 #15 #45 # 90 #400
 half_spread = 0.0015
 
 BUY = 0
@@ -199,7 +199,8 @@ if __name__ == '__main__':
 
     # バックテストだけ行う際はGPUで predictすると遅いので搭載されてないものとして動作させる
     if sys.argv[1] == "train":
-        limit_gpu_memory_usage()
+        disable_gpu()
+        #limit_gpu_memory_usage()
         tarin_agent()
     elif sys.argv[1] == "backtest":
         disable_gpu()
