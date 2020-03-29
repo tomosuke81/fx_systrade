@@ -101,7 +101,7 @@ class Actor:
 
         #ベストモデルを自動保存するようコールバックを設定
         snapshot_cbk = tf.keras.callbacks.ModelCheckpoint(
-            "./best_model.hd5", monitor='val_loss', verbose=0, save_best_only=True,
+            "./best_model", monitor='val_loss', verbose=0, save_best_only=True,
             save_weights_only=False, mode='auto', save_freq='epoch'
         )
         cbks.append(snapshot_cbk)
