@@ -254,15 +254,21 @@ class FXEnvironment:
 
             if y_arr_fpath != None:
                 diff = self.exchange_rates[i + self.predict_future_legs] - self.exchange_rates[i]
-                if diff > self.half_spread:
+                # if diff > self.half_spread:
+                #     # BUY
+                #     angle_mat.append([1.0, 0.0, 0.0])
+                # elif diff < -1 * self.half_spread:
+                #     # SELL
+                #     angle_mat.append([0.0, 1.0, 0.0])
+                # else:
+                #     # DONOT
+                #     angle_mat.append([0.0, 0.0, 1.0])
+                if diff > 0:
                     # BUY
-                    angle_mat.append([1.0, 0.0, 0.0])
-                elif diff < -1 * self.half_spread:
-                    # SELL
-                    angle_mat.append([0.0, 1.0, 0.0])
+                    angle_mat.append([1.0, 0.0])
                 else:
-                    # DONOT
-                    angle_mat.append([0.0, 0.0, 1.0])
+                    # SELL
+                    angle_mat.append([0.0, 1.0])
 
         input_mat = np.array(input_mat, dtype=np.float64)
         input_mat, _ = self.preprocess_data(input_mat)

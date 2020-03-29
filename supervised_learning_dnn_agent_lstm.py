@@ -108,10 +108,10 @@ batch_size = 256
 TRAIN_DATA_NUM = 72000 # <- 5分足で1年 # 36000 - time_series # <- 10分足で1年
 num_episodes = TRAIN_DATA_NUM + 10  # envがdoneを返すはずなので念のため多めに設定 #1000  # 総試行回数
 feature_num = 10
-nn_output_size = 3
+nn_output_size = 2 #3
 HODABLE_POSITIONS = 100 #30
 predict_future_legs = 40
-epochs = 90 #400
+epochs =  90 # 43 #400
 half_spread = 0.0015
 
 BUY = 0
