@@ -58,7 +58,10 @@ class QNetwork:
         # self.model.save_weights("./" + file_path_prefix_str + "_weights.hd5")
 
     def load_model(self, file_path_prefix_str):
-        self.model = load_model("./" + file_path_prefix_str + ".hd5", compile=False)
+        #self.model = load_model("./" + file_path_prefix_str, compile=False)
+        self.model = load_model("./" + file_path_prefix_str, compile=True)
+
+
         # with open("./" + file_path_prefix_str + "_nw.json", "r") as f:
         #     self.model = model_from_json(f.read())
         # self.model.compile(loss=huberloss, optimizer=self.optimizer)
@@ -144,9 +147,9 @@ def tarin_agent():
     mainQN.save_model("mainQN")
 
 def run_backtest(backtest_type, learingQN=None):
-    close_position_episode_idx_arr = [[-1] for i in range(TRAIN_DATA_NUM)]
+    close_position_episode_idx_arr = [-1 for i in range(TRAIN_DATA_NUM)]
 
-    env_master = FXEnvironment(time_series=time_series, holdable_positions=HODABLE_POSITIONS, half_spread=0.0015)
+    env_master = FXEnvironment(TRAIN_DATA_NUM, time_series=time_series, holdable_positions=HODABLE_POSITIONS, half_spread=0.0015)
     env = env_master.get_env(backtest_type)
     num_episodes = 1500000  # 10年. envがdoneを返すはずなので適当にでかい数字を設定しておく
 
@@ -154,16 +157,17 @@ def run_backtest(backtest_type, learingQN=None):
     mainQN = QNetwork(learning_rate=learning_rate, time_series=time_series)     # メインのQネットワーク
     actor = Actor()
 
-    mainQN.load_model("mainQN")
+    #mainQN.load_model("mainQN")
+    mainQN.load_model("./best_model_95p_index43")
 
     # DONOT でスタート
-    state, reward, done, info, needclose = env.step(0)
+    state, done = env.step(0)
     state = np.reshape(state, [time_series, feature_num])
     for episode in range(num_episodes):   # 試行数分繰り返す
         if close_position_episode_idx_arr[episode] != -1:
             action = CLOSE
         else:
-            action = actor.get_action(state, episode, mainQN)   # 時刻tでの行動を決定する
+            action = actor.get_action(state, mainQN)   # 時刻tでの行動を決定する
             if action == BUY or action == SELL:
                 close_position_episode_idx_arr[episode + predict_future_legs] = 1
 

@@ -335,7 +335,7 @@ class FXEnvironment:
 
         elif(type_str == "backtest_test"):
             return self.InnerFXEnvironment(self.ts_input_arr, self.exchange_dates, self.exchange_rates,
-                                           self.DATA_HEAD_ASOBI + self.COMPETITION_TRAIN_DATA_NUM, holdable_positions = self.holdable_positions, half_spread=self.half_spread,
+                                           self.DATA_HEAD_ASOBI + self.COMPETITION_TRAIN_DATA_NUM, holdable_positions = self.holdable_positions, half_spred=self.half_spread,
                                            angle_arr=self.ts_angle_arr, time_series = self.time_series)
         else:
             raise Exception("unknown env_tye")
@@ -374,6 +374,8 @@ class FXEnvironment:
             self.holdable_positions = holdable_positions
 
             self.portfolio_mngr = PortforioManager(exchange_rates, self.half_spread, holdable_position_num = self.holdable_positions)
+
+            self.positions_identifiers = []
 
         def get_rand_str(self):
             return str(random.randint(0, 10000000))
@@ -423,7 +425,7 @@ class FXEnvironment:
                 else: #もうオープンできない
                     a_log_str_line += ",POSITION_HOLD,0," + str(self.portfolio_mngr.get_evaluated_val_diff_of_all_pos(cur_episode_rate_idx)) + "," + str(
                     self.exchange_rates[cur_episode_rate_idx]) + ",0"
-            if action == "SELL":
+            elif action == "SELL":
                 if self.portfolio_mngr.additional_pos_openable():
                     buy_val = self.portfolio_mngr.sell(cur_episode_rate_idx)
                     self.positions_identifiers.append(cur_step_identifier)
@@ -458,7 +460,7 @@ class FXEnvironment:
 
             self.logfile_writeln_bt(a_log_str_line)
 
-            self.cur_idx += self.idx_real_step #self.idx_step
+            self.cur_idx += self.idx_step
             if (self.cur_idx) >= (len(self.input_arr) - (self.time_series - 1) - 1):
                 self.logfile_writeln_bt("finished backtest.")
                 print("finished backtest.")
