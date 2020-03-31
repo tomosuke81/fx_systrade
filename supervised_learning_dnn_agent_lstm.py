@@ -58,9 +58,10 @@ class QNetwork:
         # self.model.save_weights("./" + file_path_prefix_str + "_weights.hd5")
 
     def load_model(self, file_path_prefix_str):
-        #self.model = load_model("./" + file_path_prefix_str, compile=False)
-        self.model = load_model("./" + file_path_prefix_str, compile=True)
-
+        self.model = load_model("./" + file_path_prefix_str + ".hd5", compile=False)
+        #self.model = load_model("./" + file_path_prefix_str, compile=True)
+        #self.model.load_weights(file_path_prefix_str + "/variables/variables.data-00000-of-00001")
+        #self.model.load_weights("./" + file_path_prefix_str + "/variables/")
 
         # with open("./" + file_path_prefix_str + "_nw.json", "r") as f:
         #     self.model = model_from_json(f.read())
@@ -78,6 +79,13 @@ class Actor:
             retTargetQs = mainQN.model.predict(reshaped_state)
             print("NN all output at get_action: " + str(list(itertools.chain.from_iterable(retTargetQs))))
             action = np.argmax(retTargetQs)  # 最大の報酬を返す行動を選択する
+
+            # #あえて BUYとSELLを反転させてみる
+            # action = 0 if action == 1 else 1
+
+            # prob = retTargetQs[0]
+            # if prob[action] < 0.99:
+            #     action = DONOT
 
             return action
 
@@ -157,8 +165,8 @@ def run_backtest(backtest_type, learingQN=None):
     mainQN = QNetwork(learning_rate=learning_rate, time_series=time_series)     # メインのQネットワーク
     actor = Actor()
 
-    #mainQN.load_model("mainQN")
-    mainQN.load_model("./best_model_95p_index43")
+    mainQN.load_model("mainQN_index46")
+    #mainQN.load_model("./best_model_95p_index43")
 
     # DONOT でスタート
     state, done = env.step(0)
