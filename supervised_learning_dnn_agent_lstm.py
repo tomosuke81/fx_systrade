@@ -84,7 +84,7 @@ class Actor:
             # action = 0 if action == 1 else 1
 
             # prob = retTargetQs[0]
-            # if prob[action] < 0.99:
+            # if prob[action] < 0.6:
             #     action = DONOT
 
             return action
@@ -165,7 +165,7 @@ def run_backtest(backtest_type, learingQN=None):
     mainQN = QNetwork(learning_rate=learning_rate, time_series=time_series)     # メインのQネットワーク
     actor = Actor()
 
-    mainQN.load_model("mainQN_index46")
+    mainQN.load_model("mainQN_index55_about73p")
     #mainQN.load_model("./best_model_95p_index43")
 
     # DONOT でスタート
@@ -220,7 +220,9 @@ def limit_gpu_memory_usage():
             print(e)
 
 if __name__ == '__main__':
-    np.random.seed(1337)  # for reproducibility
+    random.seed(1337)
+    np.random.seed(1337)
+    tf.random.set_seed(1337)
 
     # バックテストだけ行う際はGPUで predictすると遅いので搭載されてないものとして動作させる
     if sys.argv[1] == "train":
