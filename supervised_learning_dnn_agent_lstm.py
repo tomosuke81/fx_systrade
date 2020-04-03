@@ -84,9 +84,9 @@ class Actor:
         #action = np.argmax(retTargetQs)  # 最大の報酬を返す行動を選択する
 
         pred_diff = retTargetQs[0][0]
-        if pred_diff < half_spread:
+        if pred_diff < -1 * half_spread * 2:
             action = SELL
-        elif pred_diff > half_spread:
+        elif pred_diff > half_spread * 2:
             action = BUY
         else:
             action = DONOT
@@ -169,7 +169,7 @@ def run_backtest(backtest_type, learingQN=None):
     mainQN = QNetwork(learning_rate=learning_rate, time_series=time_series)     # メインのQネットワーク
     actor = Actor()
 
-    mainQN.load_model("mainQN_index55_about73p")
+    mainQN.load_model("mainQN_index58_vdiff_loss005")
     #mainQN.load_model("./best_model_95p_index43")
 
     # DONOT でスタート
