@@ -42,9 +42,10 @@ class FXEnvironment:
 
         self.setup_serialized_fx_data()
 
-    def preprocess_data(self, X):
-        scaler = StandardScaler()
-        scaler.fit(X)
+    def preprocess_data(self, X, scaler=None):
+        if scaler == None:
+            scaler = StandardScaler()
+            scaler.fit(X)
 
         X_T = scaler.transform(X)
         return X_T, scaler
@@ -263,15 +264,17 @@ class FXEnvironment:
                 # else:
                 #     # DONOT
                 #     angle_mat.append([0.0, 0.0, 1.0])
-                if diff > 0:
-                    # BUY
-                    angle_mat.append([1.0, 0.0])
-                else:
-                    # SELL
-                    angle_mat.append([0.0, 1.0])
+
+                # if diff > 0:
+                #     # BUY
+                #     angle_mat.append([1.0, 0.0])
+                # else:
+                #     # SELL
+                #     angle_mat.append([0.0, 1.0])
+
+                angle_mat.append([diff])
 
         input_mat = np.array(input_mat, dtype=np.float64)
-        input_mat, _ = self.preprocess_data(input_mat)
         with open(x_arr_fpath, 'wb') as f:
             pickle.dump(input_mat, f)
         with open(y_arr_fpath, 'wb') as f:
@@ -316,9 +319,9 @@ class FXEnvironment:
             all_input_mat, all_angle_mat = \
                 self.make_serialized_data(self.DATA_HEAD_ASOBI, len(self.exchange_rates) - self.DATA_HEAD_ASOBI - self.predict_future_legs, 1, './all_input_mat.pickle', './all_angle_mat.pickle')
 
-        self.tr_input_arr = all_input_mat[0:self.COMPETITION_TRAIN_DATA_NUM]
+        self.tr_input_arr, tr_scaler = self.preprocess_data(all_input_mat[0:self.COMPETITION_TRAIN_DATA_NUM])
         self.tr_angle_arr = all_angle_mat[0:self.COMPETITION_TRAIN_DATA_NUM]
-        self.ts_input_arr = all_input_mat[self.COMPETITION_TRAIN_DATA_NUM:self.COMPETITION_TRAIN_DATA_NUM * 2]
+        self.ts_input_arr, _ =  self.preprocess_data(all_input_mat[self.COMPETITION_TRAIN_DATA_NUM:self.COMPETITION_TRAIN_DATA_NUM * 2], tr_scaler)
         self.ts_angle_arr = all_angle_mat[self.COMPETITION_TRAIN_DATA_NUM:self.COMPETITION_TRAIN_DATA_NUM * 2]
 
         print("data size of all rates for train and test: " + str(len(self.exchange_rates)))
@@ -382,18 +385,22 @@ class FXEnvironment:
             self.log_fd_bt.write(log_str + "\n")
             self.log_fd_bt.flush()
 
-        def close_all(self, cur_episode_rate_idx):
-            won_pips, won_money, each_pos_won = self.portfolio_mngr.close_all(cur_episode_rate_idx)
+        # def close_all(self, cur_episode_rate_idx):
+        #     won_pips, won_money, each_pos_won = self.portfolio_mngr.close_all(cur_episode_rate_idx)
+        #
+        #     for idx in range(0, len(self.positions_identifiers)):
+        #         # 対象のエピソードが対応する  all_period_reward_arr のインデックスに対応させる
+        #         # 最小の値は time_series - 1 で良い
+        #         episode_idx_of_past_open = each_pos_won[idx][1] - self.idx_geta
+        #         # エピソードの識別子,そのエピソードでのポジションのオープンによる獲得pips,ポジションをオープンした時のイテレーション上のインデックス,ポジションの種類
+        #         self.additional_infos.append([self.positions_identifiers[idx], each_pos_won[idx][0], episode_idx_of_past_open, each_pos_won[idx][2]])
+        #
+        #     self.positions_identifiers = []
+        #
+        #     return won_pips, won_money
 
-            for idx in range(0, len(self.positions_identifiers)):
-                # 対象のエピソードが対応する  all_period_reward_arr のインデックスに対応させる
-                # 最小の値は time_series - 1 で良い
-                episode_idx_of_past_open = each_pos_won[idx][1] - self.idx_geta
-                # エピソードの識別子,そのエピソードでのポジションのオープンによる獲得pips,ポジションをオープンした時のイテレーション上のインデックス,ポジションの種類
-                self.additional_infos.append([self.positions_identifiers[idx], each_pos_won[idx][0], episode_idx_of_past_open, each_pos_won[idx][2]])
-
-            self.positions_identifiers = []
-
+        def close_oldest(self, cur_episode_rate_idx):
+            won_pips, won_money = self.portfolio_mngr.close_oldest(cur_episode_rate_idx)
             return won_pips, won_money
 
         def step(self, action_num):
@@ -417,30 +424,31 @@ class FXEnvironment:
             if action == "BUY":
                 if self.portfolio_mngr.additional_pos_openable():
                     buy_val = self.portfolio_mngr.buy(cur_episode_rate_idx)
-                    self.positions_identifiers.append(cur_step_identifier)
+                    #self.positions_identifiers.append(cur_step_identifier)
                     a_log_str_line += ",OPEN_LONG" + ",0,0," + str(
                     self.exchange_rates[cur_episode_rate_idx]) + "," + str(buy_val)
                 else: #もうオープンできない
                     a_log_str_line += ",POSITION_HOLD,0," + str(self.portfolio_mngr.get_evaluated_val_diff_of_all_pos(cur_episode_rate_idx)) + "," + str(
                     self.exchange_rates[cur_episode_rate_idx]) + ",0"
-            if action == "SELL":
+            elif action == "SELL":
                 if self.portfolio_mngr.additional_pos_openable():
                     buy_val = self.portfolio_mngr.sell(cur_episode_rate_idx)
-                    self.positions_identifiers.append(cur_step_identifier)
+                    #self.positions_identifiers.append(cur_step_identifier)
                     a_log_str_line += ",OPEN_SHORT" + ",0,0," + str(
                     self.exchange_rates[cur_episode_rate_idx]) + "," + str(buy_val)
                 else: #もうオープンできない
                     a_log_str_line += ",POSITION_HOLD,0," + str(self.portfolio_mngr.get_evaluated_val_diff_of_all_pos(cur_episode_rate_idx)) + "," + str(
                     self.exchange_rates[cur_episode_rate_idx]) + ",0"
             elif action == "CLOSE":
-                if len(self.positions_identifiers) > 0:
-                    won_pips, won_money = self.close_all(cur_episode_rate_idx)
-                    a_log_str_line += ",CLOSE_LONG_AND_DONOT" + "," + str(won_money) + "," + str(
+                if self.portfolio_mngr.position_num > 0:
+                    #won_pips, won_money = self.close_all(cur_episode_rate_idx)
+                    won_pips, won_money = self.close_oldest(cur_episode_rate_idx)
+                    a_log_str_line += ",CLOSE_A_POSITION" + "," + str(won_money) + "," + str(
                        won_pips) + "," + str(self.exchange_rates[cur_episode_rate_idx]) + ",0"
                 else:
                     a_log_str_line += ",KEEP_NO_POSITION" + ",0,0," + str(self.exchange_rates[cur_episode_rate_idx]) + ",0"
             elif action == "DONOT":
-                if len(self.positions_identifiers) > 0:
+                if self.portfolio_mngr.position_num > 0:
                     operation_str = ",POSITION_HOLD,0,"
 
                     a_log_str_line += operation_str + "0," + str(
@@ -458,7 +466,7 @@ class FXEnvironment:
 
             self.logfile_writeln_bt(a_log_str_line)
 
-            self.cur_idx += self.idx_real_step #self.idx_step
+            self.cur_idx += self.idx_step
             if (self.cur_idx) >= (len(self.input_arr) - (self.time_series - 1) - 1):
                 self.logfile_writeln_bt("finished backtest.")
                 print("finished backtest.")
@@ -583,6 +591,24 @@ class PortforioManager:
         self.position_num = 0
 
         return won_pips_sum, won_money_sum, won_pips_arr
+
+    def close_oldest(self, rate_idx):
+        won_pips_arr = []
+        oldest_position = self.positions.pop(0)
+        if oldest_position[1] == self.LONG:
+            won_pips, won_money, return_money = self.close_long(oldest_position, rate_idx)
+        elif oldest_position[1] == self.SHORT: # self.SHORT
+            won_pips, won_money, return_money = self.close_short(oldest_position, rate_idx)
+
+        # # 獲得pips, エピソードの1イテレーションの中でのインデックス（rateのidxである点に注意）, ポジションの種類
+        # won_pips_arr.append([won_pips, oldest_position[3], oldest_position[1]])
+
+        self.total_won_pips += won_pips
+        self.having_money += return_money
+        self.position_num -= 1
+
+        return won_pips, won_money #, won_pips_arr
+
 
     # 現在のpipsで見た保有ポジションの評価損益
     def get_evaluated_val_diff_of_all_pos(self, rate_idx):
