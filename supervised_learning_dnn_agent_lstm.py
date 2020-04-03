@@ -86,9 +86,9 @@ class Actor:
             # # SELL を DONOT に置き換えてみる
             # action = 0 if action == 0 else 2
 
-            prob = retTargetQs[0]
-            if prob[action] < 0.9:
-                action = DONOT
+            # prob = retTargetQs[0]
+            # if prob[action] < 0.9:
+            #     action = DONOT
 
             return action
 
