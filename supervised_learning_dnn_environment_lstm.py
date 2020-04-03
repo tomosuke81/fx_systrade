@@ -331,7 +331,7 @@ class FXEnvironment:
     def get_env(self, type_str):
         if(type_str == "backtest"):
             return self.InnerFXEnvironment(self.tr_input_arr, self.exchange_dates, self.exchange_rates,
-                                           self.DATA_HEAD_ASOBI, idx_step = 1, holdable_positions = self.holdable_positions, half_spred=self.half_spread,
+                                           self.DATA_HEAD_ASOBI, holdable_positions = self.holdable_positions, half_spred=self.half_spread,
                                            angle_arr=self.tr_angle_arr,  time_series = self.time_series, )
 
         elif(type_str == "backtest_test"):
