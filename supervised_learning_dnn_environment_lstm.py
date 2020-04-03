@@ -264,6 +264,7 @@ class FXEnvironment:
                 # else:
                 #     # DONOT
                 #     angle_mat.append([0.0, 0.0, 1.0])
+
                 if diff > 0:
                     # BUY
                     angle_mat.append([1.0, 0.0])
