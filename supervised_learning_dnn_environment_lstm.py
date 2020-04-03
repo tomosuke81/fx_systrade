@@ -332,7 +332,7 @@ class FXEnvironment:
         if(type_str == "backtest"):
             return self.InnerFXEnvironment(self.tr_input_arr, self.exchange_dates, self.exchange_rates,
                                            self.DATA_HEAD_ASOBI, holdable_positions = self.holdable_positions, half_spred=self.half_spread,
-                                           angle_arr=self.tr_angle_arr,  time_series = self.time_series, )
+                                           angle_arr=self.tr_angle_arr,  time_series = self.time_series)
 
         elif(type_str == "backtest_test"):
             return self.InnerFXEnvironment(self.ts_input_arr, self.exchange_dates, self.exchange_rates,
