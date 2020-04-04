@@ -13,7 +13,7 @@ import random
 from sklearn.preprocessing import StandardScaler
 from collections import deque
 
-IS_BUY_SELL_MODE = False #True #DONOTをSELLとして扱い実際に売買をする
+IS_BUY_SELL_MODE = True #False #DONOTをSELLとして扱い実際に売買をする
 RATE_AND_DATE_STLIDE = int(5 / 5) # 5分足 #int(30 / 5) # 30分足
 
 class FXEnvironment:
