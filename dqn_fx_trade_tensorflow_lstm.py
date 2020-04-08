@@ -292,6 +292,7 @@ half_spread = 0.0015
 # 昔に得られた結果だからといって割引してはCLOSEのタイミングごとに平等に反映されないことになるので
 # 現在の実装では 1.0 とする
 gamma_at_reward_mean = 1.0
+mean_pips_update_stop_itr = 90
 
 LONG = 0 #BUY
 SHORT = 1 #CLOSE
@@ -337,8 +338,8 @@ def tarin_agent():
     for cur_itr in range(iteration_num):
         # 定期的にバックテストを行い評価できるようにしておく（CSVを吐く）
         if cur_itr % BACKTEST_ITR_PERIOD == 0 and cur_itr != 0:
-            run_backtest("auto_backtest", learingQN=mainQN)
-            run_backtest("auto_backtest_test", learingQN=mainQN)
+            run_backtest("auto_backtest", learingQN=mainQN, env_master=env_master)
+            run_backtest("auto_backtest_test", learingQN=mainQN, env_master=env_master)
             continue
 
         env = env_master.get_env('train')
@@ -370,6 +371,8 @@ def tarin_agent():
 
             if needclose:
                 action = 1
+            elif cur_itr > mean_pips_update_stop_itr:
+                action = np.random.choice([0, 2])
             else:
                 # 時刻tでの行動を決定する
                 action = actor.get_action(state, total_get_acton_cnt, mainQN, episode)
@@ -390,7 +393,7 @@ def tarin_agent():
             # closeされた場合過去のBUY, DONOTについて獲得pipsに係数をかけた値が与えられる.
             # 各Actionについての獲得pipsが識別子文字列とともにinfo で返されるので、過去のイテレーションでの平均値を踏まえて、
             # 今回のイテレーションでのリワードを更新し、過去のイテレーションでの平均値も更新する
-            if len(info) > 1:
+            if len(info) > 1 and cur_itr <= mean_pips_update_stop_itr:
                 for keyval in info[1:]:
                     past_all_itr_mean_reward = all_period_reward_arr[keyval[2]][keyval[3]]
                     current_itr_num = cur_itr + 1
@@ -426,9 +429,13 @@ def tarin_agent():
         # 次周では過去のmemoryは参照しない（rewardは別途保持されている）ので、memoryはクリアしてしまう
         memory.clear()
 
-def run_backtest(backtest_type, learingQN=None):
-    env_master = FXEnvironment(TRAIN_DATA_NUM, time_series=time_series, holdable_positions=HODABLE_POSITIONS, half_spread=half_spread)
-    env = env_master.get_env(backtest_type)
+def run_backtest(backtest_type, learingQN=None, env_master=None):
+    if env_master:
+        env_master_local = env_master
+    else:
+        env_master_local = FXEnvironment(TRAIN_DATA_NUM, time_series=time_series, holdable_positions=HODABLE_POSITIONS, half_spread=half_spread)
+
+    env = env_master_local.get_env(backtest_type)
     num_episodes = 1500000  # 10年. envがdoneを返すはずなので適当にでかい数字を設定しておく
 
     mainQN = QNetwork(learning_rate=learning_rate, time_series=time_series)     # メインのQネットワーク
