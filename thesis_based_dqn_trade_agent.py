@@ -86,25 +86,15 @@ class QNetwork:
                 reshaped_state = np.reshape(state_b, [1, time_series, feature_num])
                 inputs[all_sample_cnt] = reshaped_state
 
-                # Double DQN (mainQNとtargetQNを用いる)
+                # Double DQN (mainQNとtargetQNを用いる。 Fixed Q-targetsもこれでおそらく実現できているのではないかと思われる)
                 reshaped_next_state = np.reshape(next_state_b, [1, time_series, feature_num])
                 retmainQs = self.model.predict(reshaped_next_state)[0]
                 next_action = np.argmax(retmainQs)  # 最大の報酬を返す行動を選択する
                 predicted_targetQN = targetQN.model.predict(reshaped_next_state)
                 target = reward_b + gamma * predicted_targetQN[0][next_action]
 
-                # Fixed DQN実現のため、少し古いmainQNにより得られる値としてtargetQNを用いる
-                targets[all_sample_cnt][0] = predicted_targetQN[0]  # 教師信号以外の出力を与える
-                # targets[all_sample_cnt][0] = self.model.predict(reshaped_state)[0]
+                targets[all_sample_cnt][0] = self.model.predict(reshaped_state)[0]
                 targets[all_sample_cnt][0][action_b] = target  # 教師信号
-
-                # bigger_pips_action = np.argmax(reward_b)
-                # if bigger_pips_action == 0:
-                #     targets[all_sample_cnt][0][0] = 1 # 教師信号
-                #     targets[all_sample_cnt][0][1] = 0 # 教師信号
-                # else: # 2 => DONOT
-                #     targets[all_sample_cnt][0][0] = 0 # 教師信号
-                #     targets[all_sample_cnt][0][1] = 1 # 教師信号
 
                 print("reward_b," + str(reward_b) + ",target," + str(target) + ",action," + str(action_b) + ",next_action," + str(next_action))
 
@@ -271,10 +261,13 @@ def tarin_agent():
         # ここだけ 同じstateから同じstateに遷移したことにする
         store_episode_log_to_memory(state, action, reward, state)
 
-        # Double DQNを実現するためにテンポラリなネットワークも挟んで前イテレーションのネットワークを
-        # 利用できるようにしておく
-        targetQN.model.set_weights(targetQNtmp.model.get_weights())
-        targetQNtmp.model.set_weights(mainQN.model.get_weights())
+        # # Double DQNを実現するためにテンポラリなネットワークも挟んで前イテレーションのネットワークを
+        # # 利用できるようにしておく
+        # targetQN.model.set_weights(targetQNtmp.model.get_weights())
+        # targetQNtmp.model.set_weights(mainQN.model.get_weights())
+
+        # 特徴量の計算方法の変更の影響を検証するため、あえてDdouble DQNとして動作しない実装のままにしておく
+        targetQN.model.set_weights(mainQN.model.get_weights())
 
         for episode in range(num_episodes):  # 試行数分繰り返す
             total_get_action_cnt += 1
