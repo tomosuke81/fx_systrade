@@ -43,7 +43,7 @@ class QNetwork:
             #Dropout(0.5),
             LSTM(hidden_size_lstm2, return_sequences=False, activation=None), #kernel_regularizer=l1(0.1)), #recurrent_dropout=0.5),
             LeakyReLU(0.2),
-            #BatchNormalization(),
+            BatchNormalization(),
             #Dropout(0.5),
             #Dense(action_size, activation='softmax')
             Dense(action_size, activation='linear')
@@ -208,7 +208,7 @@ BACKTEST_ITR_PERIOD = 30
 half_spread = 0.0015
 
 gamma = 0.3
-volatility_tgt = 2.0
+volatility_tgt = 5.0
 bp = 0.000015 # 1ドル100円の時にスプレッドで0.15銭とられるよう逆算した比率
 
 train_episode_interval = 1024 # bs64 * 16
@@ -261,13 +261,13 @@ def tarin_agent():
         # ここだけ 同じstateから同じstateに遷移したことにする
         store_episode_log_to_memory(state, action, reward, state)
 
-        # # Double DQNを実現するためにテンポラリなネットワークも挟んで前イテレーションのネットワークを
-        # # 利用できるようにしておく
-        # targetQN.model.set_weights(targetQNtmp.model.get_weights())
-        # targetQNtmp.model.set_weights(mainQN.model.get_weights())
+        # Double DQNを実現するためにテンポラリなネットワークも挟んで前イテレーションのネットワークを
+        # 利用できるようにしておく
+        targetQN.model.set_weights(targetQNtmp.model.get_weights())
+        targetQNtmp.model.set_weights(mainQN.model.get_weights())
 
-        # 特徴量の計算方法の変更の影響を検証するため、あえてDdouble DQNとして動作しない実装のままにしておく
-        targetQN.model.set_weights(mainQN.model.get_weights())
+        # # 特徴量の計算方法の変更の影響を検証するため、あえてDdouble DQNとして動作しない実装のままにしておく
+        # targetQN.model.set_weights(mainQN.model.get_weights())
 
         for episode in range(num_episodes):  # 試行数分繰り返す
             total_get_action_cnt += 1
