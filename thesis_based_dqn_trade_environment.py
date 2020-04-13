@@ -505,7 +505,8 @@ class FXEnvironment:
                 self.logfile_writeln_bt(a_log_str_line)
 
             self.cur_idx += self.idx_step
-            if (self.cur_idx) >= (len(self.input_arr) - (self.time_series - 1) - 1):
+            #if (self.cur_idx) >= (len(self.input_arr) - (self.time_series - 1) - 1):
+            if (self.cur_idx) >= len(self.input_arr):
                 self.logfile_writeln_bt("finished backtest.")
                 print("finished backtest.")
                 process_time = time.time() - self.start
