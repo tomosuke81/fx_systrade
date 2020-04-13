@@ -256,13 +256,16 @@ class FXEnvironment:
 
     # calculate EMSD(Exponentially wighted moving standard deviation)
     def setup_volatility_arr(self, rate_arr, window_size):
+        local_window_size = window_size
+        if HALF_DAY_MODE:
+            local_window_size = 2 * local_window_size
         for idx in range(len(rate_arr)):
-            if idx + 1 < window_size:
+            if idx + 1 < local_window_size:
                 self.volatility_arr.append(0)
             else:
-                s = (idx + 1) - window_size
+                s = (idx + 1) - local_window_size
                 tmp_arr = rate_arr[s:idx + 1]
-                self.volatility_arr.append(self.calculate_volatility(tmp_arr, window_size))
+                self.volatility_arr.append(self.calculate_volatility(tmp_arr, local_window_size))
 
                 # s = (idx + 1) - window_size
                 # tmp_arr = rate_arr[s:idx + 1]
@@ -290,7 +293,7 @@ class FXEnvironment:
             leg_split_symbol_str = "23:55:00"
             additional_symbol = "xxxxx" # 基本的には存在しない文字列を指定しておく
             if HALF_DAY_MODE:
-                leg_split_symbol_str = "11:55:00"
+                additional_symbol = "11:55:00"
 
             # 日足のデータを得る (HALF_DAY_MODEの時は半日足のデータを得る)
             for line in rates_fd:
@@ -308,6 +311,8 @@ class FXEnvironment:
                 pickle.dump(self.exchange_rates, f)
             with open("./exchange_dates.pickle", 'wb') as f:
                 pickle.dump(self.exchange_dates, f)
+
+        print("data size of all rates for train and test: " + str(len(self.exchange_rates)))
 
         if False:  # self.is_fist_call == False and os.path.exists("./volatility_arr.pickle"):
             with open('./volatility_arr.pickle', 'rb') as f:
@@ -339,7 +344,6 @@ class FXEnvironment:
         self.tr_input_arr, tr_scaler = self.preprocess_data(all_input_mat[0:self.COMPETITION_TRAIN_DATA_NUM])
         self.ts_input_arr, _ =  self.preprocess_data(all_input_mat[self.COMPETITION_TRAIN_DATA_NUM:], tr_scaler)
 
-        print("data size of all rates for train and test: " + str(len(self.exchange_rates)))
         print("input features sets for tarin: " + str(self.COMPETITION_TRAIN_DATA_NUM))
         print("input features sets for test: " + str(len(self.ts_input_arr)))
         print("finished setup environment data.")
