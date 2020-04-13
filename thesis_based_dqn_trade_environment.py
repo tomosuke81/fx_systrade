@@ -15,6 +15,7 @@ from collections import deque
 import math
 
 RATE_AND_DATE_STLIDE = int(5 / 5) # 5分足 #int(30 / 5) # 30分足
+HALF_DAY_MODE = True # ageent側にも同じフラグがあって同期している必要があるので注意
 
 class FXEnvironment:
     def __init__(self, train_data_num, time_series=32, holdable_positions=100, half_spread=0.0015, volatility_tgt = 0.1, bp = 0.000015):
@@ -22,6 +23,8 @@ class FXEnvironment:
         self.COMPETITION_TRAIN_DATA_NUM = train_data_num
 
         self.DATA_HEAD_ASOBI = 252 + 63 + 5 # MACDを算出するための期間（1年） + MACDを算出するための期間（63日 window） + 余裕を持たせる分
+        if HALF_DAY_MODE:
+            self.DATA_HEAD_ASOBI = 2 * self.DATA_HEAD_ASOBI
 
         self.tr_input_arr = None
         self.val_input_arr = None
@@ -49,15 +52,18 @@ class FXEnvironment:
         return X_T, scaler
 
     def get_rsi(self, price_arr, cur_pos, period = 30):
-        if cur_pos <= period:
+        period_local = period
+        if HALF_DAY_MODE:
+            period_local = 2 * period_local
+        if cur_pos <= period_local:
             return 0
         else:
-            s = cur_pos - (period + 1)
+            s = cur_pos - (period_local + 1)
         tmp_arr = price_arr[s:cur_pos]
         #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
-        rsi_val = ta.RSI(prices, timeperiod = period)[-1]
+        rsi_val = ta.RSI(prices, timeperiod = period_local)[-1]
         print("get_rsi:" + str(rsi_val))
         return rsi_val
 
@@ -146,16 +152,28 @@ class FXEnvironment:
     #     return np.std(tmp_arr)
 
     def setup_macd_arr(self, price_arr, period = 63):
+        local_period = period
+        if HALF_DAY_MODE:
+            local_period = 2 * local_period
+
         ONE_YEAR_DAYS = 252
+        if HALF_DAY_MODE:
+            ONE_YEAR_DAYS = 2 * ONE_YEAR_DAYS
         print("setup_macd_arr called")
         prices = np.array(price_arr, dtype=float)
         print(len(prices))
-        macd, macdsignal, macdhist = ta.MACD(prices, fastperiod=8, slowperiod=24)
+        fast = 8
+        slow = 26
+        if HALF_DAY_MODE:
+            fast = 2 * fast
+            slow = 2 * slow
+
+        macd, macdsignal, macdhist = ta.MACD(prices, fastperiod=fast, slowperiod=slow)
         print(len(macd))
         self.macd_arr = macd
         # まず period 期間の標準偏差で割ることでリストの値を q{t} に置き換える
-        for idx in range(period, len(self.macd_arr)):
-            price_period_std = np.std(price_arr[idx - period + 1:idx + 1])
+        for idx in range(local_period, len(self.macd_arr)):
+            price_period_std = np.std(price_arr[idx - local_period + 1:idx + 1])
             self.macd_arr[idx] = self.macd_arr[idx] / price_period_std
         # まず 1年間の標準偏差で割ることでリストの値を論文通りのMACD{i}に置き換える
         for idx in range(ONE_YEAR_DAYS, len(self.macd_arr)):
@@ -176,7 +194,7 @@ class FXEnvironment:
     #     print("get_macd:" + str(macd[-1]))
     #     return macd[-1]
 
-    def get_macd(self, price_arr, cur_pos, period=63):
+    def get_macd(self, price_arr, cur_pos):
         return self.macd_arr[cur_pos]
 
     # 日本時間で土曜7:00-月曜7:00までは取引不可として元データから取り除く
@@ -269,10 +287,15 @@ class FXEnvironment:
                 self.exchange_rates = pickle.load(f)
         else:
             rates_fd = open('./USD_JPY_2001_2008_5min.csv', 'r')
-            # 日足のデータを得る
+            leg_split_symbol_str = "23:55:00"
+            additional_symbol = "xxxxx" # 基本的には存在しない文字列を指定しておく
+            if HALF_DAY_MODE:
+                leg_split_symbol_str = "11:55:00"
+
+            # 日足のデータを得る (HALF_DAY_MODEの時は半日足のデータを得る)
             for line in rates_fd:
                 splited = line.split(",")
-                if "23:55:00" in splited[0] and splited[2] != "High" and splited[0] != "<DTYYYYMMDD>" and splited[0] != "204/04/26" and splited[
+                if (leg_split_symbol_str in splited[0] or additional_symbol in splited[0]) and splited[2] != "High" and splited[0] != "<DTYYYYMMDD>" and splited[0] != "204/04/26" and splited[
                     0] != "20004/04/26" and self.is_weekend(splited[0]) == False:
                     time = splited[0].replace("/", "-")  # + " " + splited[1]
                     val = float(splited[4]) # close price
@@ -292,7 +315,8 @@ class FXEnvironment:
         else:
             # setup self.volatility_arr
             # 60day window
-            self.setup_volatility_arr(self.exchange_rates, 60)
+            window_size = 60
+            self.setup_volatility_arr(self.exchange_rates, window_size)
             with open("./volatility_arr.pickle", 'wb') as f:
                 pickle.dump(self.volatility_arr, f)
 
@@ -409,7 +433,7 @@ class FXEnvironment:
             evaluated_position_member = self.action_t_minus_one * (self.volatility_tgt / volatility_t_minus_one) * r_t
             transaction_cost_member_child = (self.volatility_tgt / volatility_t_minus_one) * self.action_t_minus_one - (self.volatility_tgt / volatility_t_minus_two) * self.action_t_minus_two
             transaction_cost_member_parent = self.bp * p_t_minus_one * abs(transaction_cost_member_child)
-            reward = self.fixed_open_currency_num_mue * (evaluated_position_member - transaction_cost_member_parent)
+            reward = 1.0 * (evaluated_position_member - transaction_cost_member_parent)
 
             return reward
 

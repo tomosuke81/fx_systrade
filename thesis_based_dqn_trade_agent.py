@@ -98,8 +98,10 @@ class QNetwork:
                 predicted_targetQN = targetQN.model.predict(reshaped_next_state)
                 target = reward_b + gamma * predicted_targetQN[0][next_action]
 
+                action_conved = 0 if action_b == -1 else 1
                 targets[all_sample_cnt][0] = self.model.predict(reshaped_state)[0]
-                targets[all_sample_cnt][0][action_b] = target  # 教師信号
+                targets[all_sample_cnt][0][action_conved] = target  # 教師信号
+                #targets[all_sample_cnt][0][action_b] = target  # 教師信号
 
                 print("reward_b," + str(reward_b) + ",target," + str(target) + ",action," + str(action_b) + ",next_action," + str(next_action))
 
@@ -185,14 +187,20 @@ class Actor:
             retTargetQs = mainQN.model.predict(reshaped_state)
             print("NN all output at get_action: " + str(list(itertools.chain.from_iterable(retTargetQs))))
             action = np.argmax(retTargetQs)  # 最大の報酬を返す行動を選択する
-            action = action - 1 # 0, 1, 2 を -1, 0, 1 に置き換える
+            #action = action - 1 # 0, 1, 2 を -1, 0, 1 に置き換える
+
+            # 0, 1 を -1, 1 に置き換える
+            action = -1 if action == 0 else 1
         else:
             # ランダムに行動する
-            action = np.random.choice([-1, 0, 1])
+            #action = np.random.choice([-1, 0, 1])
+            action = np.random.choice([-1, 1])
 
         return action
 
 # ---
+HALF_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
+
 hidden_size_lstm1 = 64 #32
 hidden_size_lstm2 = 32
 hidden_size_dense1 = 64
@@ -200,13 +208,17 @@ hidden_size_dense2 = 32
 
 learning_rate = 0.0001 #0.0016
 time_series = 64 #32
+if HALF_DAY_MODE:
+    time_series = 2 * time_series
 batch_size = 64 #256 #1024
-TRAIN_DATA_NUM = 252 * 5 # 5year #72000
+TRAIN_DATA_NUM = 252 * 3 # 3years #252 * 5 # 5year #72000
+if HALF_DAY_MODE:
+    TRAIN_DATA_NUM = 2 * TRAIN_DATA_NUM
 num_episodes = TRAIN_DATA_NUM + 10  # envがdoneを返すはずなので念のため多めに設定
 iteration_num = 5000 #720
 memory_size = TRAIN_DATA_NUM * 2 + 10
 feature_num = 3
-nn_output_size = 3
+nn_output_size = 2 #3
 TOTAL_ACTION_NUM = TRAIN_DATA_NUM * iteration_num
 HODABLE_POSITIONS = 1 #30
 BACKTEST_ITR_PERIOD = 30
@@ -259,7 +271,8 @@ def tarin_agent():
 
         env = env_master.get_env('train')
         #action = np.random.choice([0, 1, 2])
-        action = np.random.choice([-1, 0, 1])
+        #action = np.random.choice([-1, 0, 1])
+        action = np.random.choice([0, 1])
         state, reward, done = env.step(action)  # 1step目は適当なBUYかDONOTのうちランダムに行動をとる
         total_get_action_cnt += 1
         state = np.reshape(state, [time_series, feature_num])  # list型のstateを、1行15列の行列に変換
@@ -284,6 +297,7 @@ def tarin_agent():
 
             # 環境が提供する期間が最後までいった場合
             if done:
+                mainQN.replay(memory, time_series, targetQN, cur_episode_idx=episode, batch_num= (memory.len() // batch_size))
                 print(str(cur_itr) + ' training period finished.')
                 break
 
@@ -292,11 +306,11 @@ def tarin_agent():
 
             state = next_state  # 状態更新
 
-            # 1024エピソードごとにfitする（それでFixed DQNを実装したことになるはず）
-            # Qネットワークの重みを学習・更新する replay
-            # train_episode_interval分新たにmemoryにエピソードがたまったら batch_size のミニバッチ 16個 として replayする
-            if episode + 1 >= train_episode_interval and (episode + 1) % train_episode_interval == 0:
-                mainQN.replay(memory, time_series, targetQN, cur_episode_idx=episode, batch_num=16)
+            # # 1024エピソードごとにfitする（それでFixed DQNを実装したことになるはず）
+            # # Qネットワークの重みを学習・更新する replay
+            # # train_episode_interval分新たにmemoryにエピソードがたまったら batch_size のミニバッチ 16個 として replayする
+            # if episode + 1 >= train_episode_interval and (episode + 1) % train_episode_interval == 0:
+            #     mainQN.replay(memory, time_series, targetQN, cur_episode_idx=episode, batch_num=16)
 
         # 次周では過去のmemoryは参照しない
         memory.clear()
