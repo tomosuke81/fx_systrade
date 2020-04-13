@@ -73,13 +73,18 @@ class QNetwork:
         targets = np.zeros((batch_size * batch_num, 1, nn_output_size))
 
         all_sample_cnt = 0
-        #batch_start_idx = (cur_episode_idx + 1) - (batch_size * batch_num)
-        # ミニバッチは後方から取得して targets に詰めていく
-        # ミニバッチの中は時系列になっているが、ミニバッチ単位では時系列が逆になる
-        # これは、後方から前方にrewardが伝播していく更新式の性質を考慮したため（うまくいかなければやめる）
-        batch_start_idx = (cur_episode_idx + 1) - batch_size
+        # #batch_start_idx = (cur_episode_idx + 1) - (batch_size * batch_num)
+        # # ミニバッチは後方から取得して targets に詰めていく
+        # # ミニバッチの中は時系列になっているが、ミニバッチ単位では時系列が逆になる
+        # # これは、後方から前方にrewardが伝播していく更新式の性質を考慮したため（うまくいかなければやめる）
+        # batch_start_idx = (cur_episode_idx + 1) - batch_size
 
+        # 1イテレーション内でミニバッチをシャッフルして適用する
+        batch_num_arr = list(range(batch_num))
+        random.shuffle(batch_num_arr)
         for ii in range(batch_num):
+            # 開始位置をシャッフルしたリストに基づいて決定する
+            batch_start_idx = batch_num_arr.pop() * batch_size
             mini_batch = memory.get_sequencial_samples(batch_size, batch_start_idx)
 
             for idx, (state_b, action_b, reward_b, next_state_b) in enumerate(mini_batch):
@@ -101,7 +106,7 @@ class QNetwork:
                 all_sample_cnt += 1
 
             #batch_start_idx += batch_size
-            batch_start_idx -= batch_size
+            #batch_start_idx -= batch_size
 
         targets = np.array(targets)
         inputs = np.array(inputs)
