@@ -372,8 +372,8 @@ def tarin_agent():
 
             if needclose:
                 action = 1
-            elif cur_itr > mean_pips_update_stop_itr:
-                action = np.random.choice([0, 2])
+            # elif cur_itr > mean_pips_update_stop_itr:
+            #     action = np.random.choice([0, 2])
             else:
                 # 時刻tでの行動を決定する
                 action = actor.get_action(state, total_get_acton_cnt, mainQN, episode)
@@ -394,7 +394,7 @@ def tarin_agent():
             # closeされた場合過去のBUY, DONOTについて獲得pipsに係数をかけた値が与えられる.
             # 各Actionについての獲得pipsが識別子文字列とともにinfo で返されるので、過去のイテレーションでの平均値を踏まえて、
             # 今回のイテレーションでのリワードを更新し、過去のイテレーションでの平均値も更新する
-            if len(info) > 1 and cur_itr <= mean_pips_update_stop_itr:
+            if len(info) > 1: #and cur_itr <= mean_pips_update_stop_itr:
                 for keyval in info[1:]:
                     past_all_itr_mean_reward = all_period_reward_arr[keyval[2]][keyval[3]]
                     current_itr_num = cur_itr + 1

@@ -101,7 +101,7 @@ class FXEnvironment:
         else:
             s = cur_pos - (period + 1)
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.RSI(prices, timeperiod = period)[-1]
@@ -114,7 +114,7 @@ class FXEnvironment:
         else:
             s = cur_pos - period
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.SMA(prices, timeperiod = period)[-1]
@@ -130,7 +130,7 @@ class FXEnvironment:
         else:
             s = cur_pos - period
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.BBANDS(prices, timeperiod = period)[0][-1]
@@ -141,7 +141,7 @@ class FXEnvironment:
         else:
             s = cur_pos - period
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.BBANDS(prices, timeperiod = period)[2][-1]
@@ -153,7 +153,7 @@ class FXEnvironment:
         else:
             s = cur_pos - period
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.EMA(prices, timeperiod = period)[-1]
@@ -173,7 +173,7 @@ class FXEnvironment:
         else:
             s = cur_pos - (period + 1)
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.CMO(prices, timeperiod = period)[-1]
@@ -185,7 +185,7 @@ class FXEnvironment:
         else:
             s = cur_pos - period
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         return ta.PPO(prices)[-1]
@@ -208,7 +208,7 @@ class FXEnvironment:
         else:
             s = cur_pos - period
         tmp_arr = price_arr[s:cur_pos]
-        tmp_arr.reverse()
+        #tmp_arr.reverse()
         prices = np.array(tmp_arr, dtype=float)
 
         macd, macdsignal, macdhist = ta.MACD(prices,fastperiod=12, slowperiod=26, signalperiod=9)
