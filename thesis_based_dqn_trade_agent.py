@@ -44,7 +44,7 @@ class QNetwork:
             LSTM(hidden_size_lstm2, return_sequences=False, activation=None), #kernel_regularizer=l1(0.1)), #recurrent_dropout=0.5),
             LeakyReLU(0.2),
             BatchNormalization(),
-            #Dropout(0.5),
+            Dropout(0.5),
             #Dense(action_size, activation='softmax')
             Dense(action_size, activation='linear')
         ])
@@ -201,10 +201,8 @@ class Actor:
 # ---
 HALF_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
 
-hidden_size_lstm1 = 64 #32
-hidden_size_lstm2 = 32
-hidden_size_dense1 = 64
-hidden_size_dense2 = 32
+hidden_size_lstm1 = 16 #32 #64 #32
+hidden_size_lstm2 = 8 #16 #32
 
 learning_rate = 0.0001 #0.0016
 time_series = 64 #32
