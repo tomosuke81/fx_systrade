@@ -11,9 +11,10 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.models import Sequential, model_from_json, Model, load_model, save_model
-from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, RepeatVector, TimeDistributed, Reshape, LeakyReLU
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, LSTM, RepeatVector, TimeDistributed, Reshape, LeakyReLU, Lambda, Input
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.regularizers import l1, l2
+from tensorflow.keras import backend as K
 #from tensorflow.keras.regularizers import l2
 
 from collections import deque
@@ -36,18 +37,35 @@ class QNetwork:
         self.loss_func = tf.keras.losses.Huber(delta=1.0)
         #self.loss_func = "categorical_crossentropy"
 
-        self.model = tf.keras.Sequential([
-            LSTM(hidden_size_lstm1, input_shape=(time_series, state_size), return_sequences=True, activation=None), #kernel_regularizer=l1(0.1)), #recurrent_dropout=0.5),
-            LeakyReLU(0.2),
-            #BatchNormalization(),
-            #Dropout(0.5),
-            LSTM(hidden_size_lstm2, return_sequences=False, activation=None), #kernel_regularizer=l1(0.1)), #recurrent_dropout=0.5),
-            LeakyReLU(0.2),
-            BatchNormalization(),
-            Dropout(0.5),
-            #Dense(action_size, activation='softmax')
-            Dense(action_size, activation='linear')
-        ])
+        inputlayer = Input(shape=(time_series, state_size))
+        #middlelayer = LSTM(hidden_size_lstm1, return_sequences=True, activation=None)(inputlayer)
+        middlelayer = LSTM(hidden_size_lstm1, return_sequences=False, activation=None)(inputlayer)
+        middlelayer = LeakyReLU(0.2)(middlelayer)
+        # middlelayer = LSTM(hidden_size_lstm2, return_sequences=False, activation=None)(middlelayer)
+        # middlelayer = LeakyReLU(0.2)(middlelayer)
+        middlelayer = BatchNormalization()(middlelayer)
+        middlelayer = Dropout(0.5)(middlelayer)
+
+        # dueling network
+        y=Dense(action_size + 1, activation='linear')(middlelayer)     # 0番目がV(s), 1以降がA(s,a), 平均値は引かないnaive型
+        outputlayer = Lambda(lambda a: K.expand_dims(a[:, 0], -1) + a[:, 1:] - 0.0*K.mean(a[:, 1:], keepdims=True),
+                             output_shape=(action_size,))(y)
+
+        self.model=tf.keras.Model(inputs=inputlayer, outputs=outputlayer)
+
+        # self.model = tf.keras.Sequential([
+        #     LSTM(hidden_size_lstm1, input_shape=(time_series, state_size), return_sequences=True, activation=None), #kernel_regularizer=l1(0.1)), #recurrent_dropout=0.5),
+        #     LeakyReLU(0.2),
+        #     #BatchNormalization(),
+        #     #Dropout(0.5),
+        #     LSTM(hidden_size_lstm2, return_sequences=False, activation=None), #kernel_regularizer=l1(0.1)), #recurrent_dropout=0.5),
+        #     LeakyReLU(0.2),
+        #     BatchNormalization(),
+        #     #Dropout(0.5),
+        #     #Dense(action_size, activation='softmax')
+        #     Dense(action_size, activation='linear')
+        # ])
+
         # self.model = tf.keras.Sequential([
         #     LSTM(hidden_size_lstm1, input_shape=(time_series, state_size), return_sequences=False, activation=None),
         #     LeakyReLU(0.2),
@@ -98,7 +116,9 @@ class QNetwork:
                 predicted_targetQN = targetQN.model.predict(reshaped_next_state)
                 target = reward_b + gamma * predicted_targetQN[0][next_action]
 
-                action_conved = 0 if action_b == -1 else 1
+                #action_conved = 0 if action_b == -1 else 1
+                action_conved = action_b + 1
+
                 targets[all_sample_cnt][0] = self.model.predict(reshaped_state)[0]
                 targets[all_sample_cnt][0][action_conved] = target  # 教師信号
                 #targets[all_sample_cnt][0][action_b] = target  # 教師信号
@@ -187,22 +207,23 @@ class Actor:
             retTargetQs = mainQN.model.predict(reshaped_state)
             print("NN all output at get_action: " + str(list(itertools.chain.from_iterable(retTargetQs))))
             action = np.argmax(retTargetQs)  # 最大の報酬を返す行動を選択する
-            #action = action - 1 # 0, 1, 2 を -1, 0, 1 に置き換える
+            action = action - 1 # 0, 1, 2 を -1, 0, 1 に置き換える
 
-            # 0, 1 を -1, 1 に置き換える
-            action = -1 if action == 0 else 1
+            # # 0, 1 を -1, 1 に置き換える
+            # action = -1 if action == 0 else 1
         else:
             # ランダムに行動する
-            #action = np.random.choice([-1, 0, 1])
-            action = np.random.choice([-1, 1])
+            action = np.random.choice([-1, 0, 1])
+            #action = np.random.choice([-1, 1])
 
         return action
 
 # ---
 HALF_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
 
-hidden_size_lstm1 = 16 #32 #64 #32
-hidden_size_lstm2 = 8 #16 #32
+hidden_size_lstm1 = 64 #28 #64 #32
+#hidden_size_lstm2 = 32 #16 #32
+
 
 learning_rate = 0.0001 #0.0016
 time_series = 64 #32
@@ -216,13 +237,13 @@ num_episodes = TRAIN_DATA_NUM + 10  # envがdoneを返すはずなので念の�
 iteration_num = 5000 #720
 memory_size = TRAIN_DATA_NUM * 2 + 10
 feature_num = 3
-nn_output_size = 2 #3
+nn_output_size = 3 #2 #3
 TOTAL_ACTION_NUM = TRAIN_DATA_NUM * iteration_num
 HODABLE_POSITIONS = 1 #30
 BACKTEST_ITR_PERIOD = 30
 half_spread = 0.0015
 
-gamma = 0.3
+gamma = 0.5477 #0.3
 volatility_tgt = 5.0
 bp = 0.000015 # 1ドル100円の時にスプレッドで0.15銭とられるよう逆算した比率
 
