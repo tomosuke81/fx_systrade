@@ -43,6 +43,7 @@ class QNetwork:
         middlelayer = LSTM(hidden_size_lstm2, return_sequences=False, activation=None)(middlelayer)
         middlelayer = LeakyReLU(0.2)(middlelayer)
         middlelayer = BatchNormalization()(middlelayer)
+        middlelayer = Dropout(0.5)(middlelayer)
 
         # dueling network
         y=Dense(action_size + 1, activation='linear')(middlelayer)     # 0番目がV(s), 1以降がA(s,a), 平均値は引かないnaive型
@@ -217,10 +218,9 @@ class Actor:
 # ---
 HALF_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
 
-hidden_size_lstm1 = 64 #32
-hidden_size_lstm2 = 32
-hidden_size_dense1 = 64
-hidden_size_dense2 = 32
+hidden_size_lstm1 = 28 #64 #32
+hidden_size_lstm2 = 16 #32
+
 
 learning_rate = 0.0001 #0.0016
 time_series = 64 #32
