@@ -86,7 +86,7 @@ class QNetwork:
         self.model.summary()
 
     # 重みの学習
-    def replay(self, memory, time_series, targetQN, cur_episode_idx = 0, batch_num = 1):
+    def replay(self, memory, time_series, targetQN, cur_episode_idx = 0, cur_itr=0, batch_num = 1):
         inputs = np.zeros((batch_size * batch_num, time_series, feature_num))
         targets = np.zeros((batch_size * batch_num, 1, nn_output_size))
 
@@ -109,12 +109,15 @@ class QNetwork:
                 reshaped_state = np.reshape(state_b, [1, time_series, feature_num])
                 inputs[all_sample_cnt] = reshaped_state
 
-                # Double DQN (mainQNとtargetQNを用いる。 Fixed Q-targetsもこれでおそらく実現できているのではないかと思われる)
-                reshaped_next_state = np.reshape(next_state_b, [1, time_series, feature_num])
-                retmainQs = self.model.predict(reshaped_next_state)[0]
-                next_action = np.argmax(retmainQs)  # 最大の報酬を返す行動を選択する
-                predicted_targetQN = targetQN.model.predict(reshaped_next_state)
-                target = reward_b + gamma * predicted_targetQN[0][next_action]
+                target = reward_b
+                # 30itr以降はreward_bで直接fitさせてしまう
+                if cur_itr < 30:
+                    # Double DQN (mainQNとtargetQNを用いる。 Fixed Q-targetsもこれでおそらく実現できているのではないかと思われる)
+                    reshaped_next_state = np.reshape(next_state_b, [1, time_series, feature_num])
+                    retmainQs = self.model.predict(reshaped_next_state)[0]
+                    next_action = np.argmax(retmainQs)  # 最大の報酬を返す行動を選択する
+                    predicted_targetQN = targetQN.model.predict(reshaped_next_state)
+                    target = reward_b + gamma * predicted_targetQN[0][next_action]
 
                 #action_conved = 0 if action_b == -1 else 1
                 action_conved = action_b + 1
@@ -219,8 +222,8 @@ class Actor:
         return action
 
 # ---
-HALF_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
-
+HALF_DAY_MODE = False # environment側にも同じフラグがあって同期している必要があるので注意
+ONE_THIRD_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
 hidden_size_lstm1 = 64 #28 #64 #32
 #hidden_size_lstm2 = 32 #16 #32
 
@@ -229,10 +232,15 @@ learning_rate = 0.0001 #0.0016
 time_series = 64 #32
 if HALF_DAY_MODE:
     time_series = 2 * time_series
+if ONE_THIRD_DAY_MODE:
+    time_series = 3 * time_series
+
 batch_size = 64 #256 #1024
 TRAIN_DATA_NUM = 252 * 3 # 3years #252 * 5 # 5year #72000
 if HALF_DAY_MODE:
     TRAIN_DATA_NUM = 2 * TRAIN_DATA_NUM
+if ONE_THIRD_DAY_MODE:
+    TRAIN_DATA_NUM = 3 * TRAIN_DATA_NUM
 num_episodes = TRAIN_DATA_NUM + 10  # envがdoneを返すはずなので念のため多めに設定
 iteration_num = 5000 #720
 memory_size = TRAIN_DATA_NUM * 2 + 10
@@ -243,7 +251,7 @@ HODABLE_POSITIONS = 1 #30
 BACKTEST_ITR_PERIOD = 30
 half_spread = 0.0015
 
-gamma = 0.5477 #0.3
+gamma = 0.6694 # <- 1/3日足の場合 # 0.5477 # <- 半日足の場合 #0.3 # 1日足の場合
 volatility_tgt = 5.0
 bp = 0.000015 # 1ドル100円の時にスプレッドで0.15銭とられるよう逆算した比率
 
@@ -316,7 +324,7 @@ def tarin_agent():
 
             # 環境が提供する期間が最後までいった場合
             if done:
-                mainQN.replay(memory, time_series, targetQN, cur_episode_idx=episode, batch_num= (memory.len() // batch_size))
+                mainQN.replay(memory, time_series, targetQN, cur_episode_idx=episode, cur_itr=cur_itr, batch_num= (memory.len() // batch_size))
                 print(str(cur_itr) + ' training period finished.')
                 break
 
