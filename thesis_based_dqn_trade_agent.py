@@ -109,6 +109,8 @@ class QNetwork:
                 reshaped_state = np.reshape(state_b, [1, time_series, feature_num])
                 inputs[all_sample_cnt] = reshaped_state
 
+                next_action = -99 # Q関数の更新式を用いなくなった場合のため
+                
                 target = reward_b
                 # 30itr以降はreward_bで直接fitさせてしまう
                 if cur_itr < 30:
