@@ -15,8 +15,7 @@ from collections import deque
 import math
 
 RATE_AND_DATE_STLIDE = int(5 / 5) # 5分足 #int(30 / 5) # 30分足
-HALF_DAY_MODE = False # ageent側にも同じフラグがあって同期している必要があるので注意
-ONE_THIRD_DAY_MODE = True # ageent側にも同じフラグがあって同期している必要があるので注意
+HALF_DAY_MODE = True # ageent側にも同じフラグがあって同期している必要があるので注意
 
 class FXEnvironment:
     def __init__(self, train_data_num, time_series=32, holdable_positions=100, half_spread=0.0015, volatility_tgt = 0.1, bp = 0.000015):
@@ -26,8 +25,6 @@ class FXEnvironment:
         self.DATA_HEAD_ASOBI = 252 + 63 + 5 # MACDを算出するための期間（1年） + MACDを算出するための期間（63日 window） + 余裕を持たせる分
         if HALF_DAY_MODE:
             self.DATA_HEAD_ASOBI = 2 * self.DATA_HEAD_ASOBI
-        if ONE_THIRD_DAY_MODE:
-            self.DATA_HEAD_ASOBI = 3 * self.DATA_HEAD_ASOBI
 
         self.tr_input_arr = None
         self.val_input_arr = None
@@ -58,8 +55,6 @@ class FXEnvironment:
         period_local = period
         if HALF_DAY_MODE:
             period_local = 2 * period_local
-        if ONE_THIRD_DAY_MODE:
-            period_local = 3 * period_local
         if cur_pos <= period_local:
             return 0
         else:
@@ -164,8 +159,6 @@ class FXEnvironment:
         ONE_YEAR_DAYS = 252
         if HALF_DAY_MODE:
             ONE_YEAR_DAYS = 2 * ONE_YEAR_DAYS
-        if ONE_THIRD_DAY_MODE:
-            ONE_YEAR_DAYS = 3 * ONE_YEAR_DAYS
         print("setup_macd_arr called")
         prices = np.array(price_arr, dtype=float)
         print(len(prices))
@@ -174,9 +167,6 @@ class FXEnvironment:
         if HALF_DAY_MODE:
             fast = 2 * fast
             slow = 2 * slow
-        if ONE_THIRD_DAY_MODE:
-            fast = 3 * fast
-            slow = 3 * slow
 
         macd, macdsignal, macdhist = ta.MACD(prices, fastperiod=fast, slowperiod=slow)
         print(len(macd))
@@ -269,8 +259,6 @@ class FXEnvironment:
         local_window_size = window_size
         if HALF_DAY_MODE:
             local_window_size = 2 * local_window_size
-        if ONE_THIRD_DAY_MODE:
-            local_window_size = 3 * local_window_size
         for idx in range(len(rate_arr)):
             if idx + 1 < local_window_size:
                 self.volatility_arr.append(0)
@@ -303,19 +291,14 @@ class FXEnvironment:
         else:
             rates_fd = open('./USD_JPY_2001_2008_5min.csv', 'r')
             leg_split_symbol_str = "23:55:00"
-            additional_symbol_1 = "xxxxx" # 基本的には存在しない文字列を指定しておく
-            additional_symbol_2 = "xxxxx"  # 基本的には存在しない文字列を指定しておく
+            additional_symbol = "xxxxx" # 基本的には存在しない文字列を指定しておく
             if HALF_DAY_MODE:
-                additional_symbol_1 = "11:55:00"
-            if ONE_THIRD_DAY_MODE:
-                additional_symbol_1 = "15:55:00"
-                additional_symbol_2 = "07:55:00"
+                additional_symbol = "11:55:00"
 
-
-            # 日足のデータを得る (HALF_DAY_MODEの時は半日足、ONE_THID_DAY_MODEの時は1/3日足のデータを得る)
+            # 日足のデータを得る (HALF_DAY_MODEの時は半日足のデータを得る)
             for line in rates_fd:
                 splited = line.split(",")
-                if (leg_split_symbol_str in splited[0] or additional_symbol_1 in splited[0] or additional_symbol_2 in splited[0]) and splited[2] != "High" and splited[0] != "<DTYYYYMMDD>" and splited[0] != "204/04/26" and splited[
+                if (leg_split_symbol_str in splited[0] or additional_symbol in splited[0]) and splited[2] != "High" and splited[0] != "<DTYYYYMMDD>" and splited[0] != "204/04/26" and splited[
                     0] != "20004/04/26" and self.is_weekend(splited[0]) == False:
                     time = splited[0].replace("/", "-")  # + " " + splited[1]
                     val = float(splited[4]) # close price
