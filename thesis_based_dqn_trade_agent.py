@@ -39,7 +39,7 @@ class QNetwork:
 
         inputlayer = Input(shape=(time_series, state_size))
         #middlelayer = LSTM(hidden_size_lstm1, return_sequences=True, activation=None)(inputlayer)
-        middlelayer = LSTM(hidden_size_lstm1, return_sequences=False, activation=None)(inputlayer)
+        middlelayer = LSTM(hidden_size_lstm1, return_sequences=False, recurrent_dropout=0.5, activation=None)(inputlayer)
         middlelayer = LeakyReLU(0.2)(middlelayer)
         # middlelayer = LSTM(hidden_size_lstm2, return_sequences=False, activation=None)(middlelayer)
         # middlelayer = LeakyReLU(0.2)(middlelayer)
@@ -112,7 +112,7 @@ class QNetwork:
                 next_action = -99 # Q関数の更新式を用いなくなった場合のため
 
                 target = reward_b
-                # 15itr以降はreward_bで直接fitさせてしまう
+                # 15itr以降は Q関数の更新式は用いず reward_b にそのまま fit させる
                 if cur_itr < 15:
                     # Double DQN (mainQNとtargetQNを用いる。 Fixed Q-targetsもこれでおそらく実現できているのではないかと思われる)
                     reshaped_next_state = np.reshape(next_state_b, [1, time_series, feature_num])
@@ -224,8 +224,8 @@ class Actor:
         return action
 
 # ---
-HALF_DAY_MODE = False # environment側にも同じフラグがあって同期している必要があるので注意
-ONE_THIRD_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
+HALF_DAY_MODE = True # environment側にも同じフラグがあって同期している必要があるので注意
+
 hidden_size_lstm1 = 64 #28 #64 #32
 #hidden_size_lstm2 = 32 #16 #32
 
@@ -234,15 +234,10 @@ learning_rate = 0.0001 #0.0016
 time_series = 64 #32
 if HALF_DAY_MODE:
     time_series = 2 * time_series
-if ONE_THIRD_DAY_MODE:
-    time_series = 3 * time_series
-
 batch_size = 64 #256 #1024
 TRAIN_DATA_NUM = 252 * 3 # 3years #252 * 5 # 5year #72000
 if HALF_DAY_MODE:
     TRAIN_DATA_NUM = 2 * TRAIN_DATA_NUM
-if ONE_THIRD_DAY_MODE:
-    TRAIN_DATA_NUM = 3 * TRAIN_DATA_NUM
 num_episodes = TRAIN_DATA_NUM + 10  # envがdoneを返すはずなので念のため多めに設定
 iteration_num = 5000 #720
 memory_size = TRAIN_DATA_NUM * 2 + 10
@@ -253,7 +248,7 @@ HODABLE_POSITIONS = 1 #30
 BACKTEST_ITR_PERIOD = 30
 half_spread = 0.0015
 
-gamma = 0.6694 # <- 1/3日足の場合 # 0.5477 # <- 半日足の場合 #0.3 # 1日足の場合
+gamma = 0.5477 #0.3
 volatility_tgt = 5.0
 bp = 0.000015 # 1ドル100円の時にスプレッドで0.15銭とられるよう逆算した比率
 
