@@ -224,7 +224,7 @@ class FXEnvironment:
             self.macd_arr[idx] = self.macd_arr[idx] / price_period_std
         # 次に1年間の標準偏差で割ることでリストの値を論文通りのMACD{i}に置き換える
         for idx in range(local_ONE_YEAR_DAYS, len(self.macd_arr)):
-            price_year_std = np.std(price_arr[idx - local_ONE_YEAR_DAYS + 1:idx + 1])
+            price_year_std = np.std(price_arr[idx - ONE_YEAR_DAYS + 1:idx + 1])
             self.macd_arr[idx] = self.macd_arr[idx] / price_year_std
 
     # def get_macd(self, price_arr, cur_pos, period = 63):
@@ -417,7 +417,8 @@ class FXEnvironment:
 
         # TODO: 論文では価格のみ normalize したとあるが、面倒なので全ての特徴量を normalize してしまう
         self.tr_input_arr, tr_scaler = self.preprocess_data(all_input_mat[0:self.COMPETITION_TRAIN_DATA_NUM])
-        self.ts_input_arr, _ =  self.preprocess_data(all_input_mat[self.COMPETITION_TRAIN_DATA_NUM:], tr_scaler)
+        # 学習データと同じ年数にする
+        self.ts_input_arr, _ =  self.preprocess_data(all_input_mat[self.COMPETITION_TRAIN_DATA_NUM:2 * self.COMPETITION_TRAIN_DATA_NUM], tr_scaler)
 
         print("input features sets for tarin: " + str(self.COMPETITION_TRAIN_DATA_NUM))
         print("input features sets for test: " + str(len(self.ts_input_arr)))
