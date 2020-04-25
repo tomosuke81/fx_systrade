@@ -68,9 +68,12 @@ class QNetwork:
             inputlayer = Input(shape=(state_size))
             middlelayer = Dense(hidden_size_dense, activation=None)(inputlayer)
             middlelayer = LeakyReLU(0.2)(middlelayer)
+            middlelayer = BatchNormalization()(middlelayer)
+            middlelayer = Dropout(0.8)(middlelayer)
             middlelayer = Dense(hidden_size_dense, activation=None)(middlelayer)
             middlelayer = LeakyReLU(0.2)(middlelayer)
             middlelayer = BatchNormalization()(middlelayer)
+            middlelayer = Dropout(0.5)(middlelayer)
 
             # dueling network
             y = Dense(action_size + 1, activation='linear')(middlelayer)  # 0番目がV(s), 1以降がA(s,a), 平均値は引かないnaive型
